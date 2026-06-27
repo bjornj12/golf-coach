@@ -250,7 +250,7 @@ to mph/yards if the user expects imperial.
 ## Live validation (2026-06-27)
 
 `scripts/validate.py` run against a real account returned data for **every**
-category: profile, handicap (currentHcp X.X), handicap history (4 records),
-activities (25), course rounds (8), club gapping (9 clubs w/ carry + std-dev),
-activity summary (7 kinds), and shot-level launch metrics (21 shots from a
-course round). All tool GraphQL queries are confirmed correct end-to-end.
+category: profile, handicap (current index + history), activities, course rounds,
+club gapping (carry + std-dev per club), activity summary, and shot-level launch
+metrics from a course round. All tool GraphQL queries are confirmed correct
+end-to-end. (Specific values omitted — run the validator yourself to see yours.)
