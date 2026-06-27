@@ -75,6 +75,7 @@ GET_SESSION = """
 query GetSession($id: ID!) {
   node(id: $id) {
     __typename
+    ... on PlayerActivity { id time kind isHidden }
     ... on RangePracticeActivity {
       id time kind numberOfStrokes clubs
       location { name }
@@ -118,11 +119,43 @@ query GetSession($id: ID!) {
         }
       }
     }
+    ... on SimulatorSessionActivity {
+      id time kind strokeCount
+      strokes {
+        time club
+        measurement {
+          clubSpeed attackAngle ballSpeed smashFactor carry total
+          launchAngle spinRate spinAxis curve carrySide totalSide landingAngle
+        }
+      }
+    }
+    ... on VirtualRangeSessionActivity {
+      id time kind strokeCount
+      strokes {
+        time club
+        measurement {
+          clubSpeed attackAngle ballSpeed smashFactor carry total
+          launchAngle spinRate spinAxis curve carrySide totalSide landingAngle
+        }
+      }
+    }
+    ... on SessionActivity {
+      id time kind strokeCount
+      strokes {
+        time club
+        measurement {
+          clubSpeed attackAngle ballSpeed smashFactor carry total
+          launchAngle spinRate spinAxis curve carrySide totalSide landingAngle
+        }
+      }
+    }
     ... on CoursePlayActivity {
       id time kind gameType grossScore netScore toPar thruHole
       course { displayName }
       scorecard {
-        id par grossScore toPar numberOfHolesPlayed isCompleted
+        id par grossScore netScore toPar netToPar numberOfHolesPlayed isCompleted
+        totalDistance courseHcp greenStimp teeName isInHcp
+        course { displayName }
         stat {
           driveAverage driveMax greenInRegulation numberOfPutts
           fairwayHitFairway fairwayHitLeft fairwayHitRight

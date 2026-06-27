@@ -88,6 +88,26 @@ under the signed-in user's `me` root.
 | `get_shot_data` | `*.measurement` (`Measurement`) | Shot launch metrics: ball/club speed, smash, launch, spin, carry, side, curve, landing angle (~80 fields). |
 | `get_activity_summary` | `activitySummary(timeFrom,timeTo)` | Counts per activity kind over a window. |
 
+### Session-analysis tools (local store, deterministic analytics)
+
+These persist and serve a per-session *analysis*. The analytics are
+**deterministic** (in `analysis.py`) — classification and measurement, not
+coaching. Coaching narrative still lives in the skills. The store is JSON at
+`~/.trackman-mcp/session-analyses.json`, capped at the **last 30**, latest first.
+
+| Tool | Does |
+|------|------|
+| `analyze_and_store_session(activity_id)` | Fetch a session, classify (warm-up vs serious practice vs game), compute metrics + course difficulty, normalize vs previously stored sessions, flag used-vs-available clubs, store, return the record. |
+| `list_session_analyses()` | Index of stored analyses (id, time, kind, category, seriousness, summary), latest first. |
+| `get_session_analysis(activity_id)` | One full stored analysis record. |
+
+Classification (see `analysis.py`): a session is a **warm-up** (not an
+improvement attempt) if under ~8 strokes or ~5 minutes — even for an otherwise
+"serious" kind; **serious practice** if it has real volume/duration/club variety
+or is a focused kind (shot analysis, find-my-distance, sim/virtual-range, etc.);
+**game** for played rounds. Normalization is always against sessions
+*chronologically before* the one analyzed. Units are metric (m/s, meters).
+
 **Auth reality**: the web portal uses a *confidential* OIDC client (backend-for-
 frontend), so the MCP cannot run the OAuth exchange itself. It authenticates with
 a **Bearer access token captured from an authenticated portal session**, attached
@@ -168,9 +188,15 @@ Project-local skills live in `.claude/skills/`. Each has a `SKILL.md`.
   an example session, drills, and YouTube links. The coach persona.
 - **`drill-library`** — Curated drills + vetted YouTube links, plus the
   procedure for live web-searching fresh videos matched to a weakness.
+- **`trackman-session-analyzer`** — Ingests recent sessions, stores a per-session
+  analysis (last 30) via the MCP, and returns a normalized summary of the latest
+  session. **Context-forked / data-collection skill: must run in a subagent,
+  never on the main thread.**
 
 Typical flow: `authenticate` → `trackman-stats-analysis` (diagnose) →
-`golf-coaching` (prescribe, pulling from `drill-library`).
+`golf-coaching` (prescribe, pulling from `drill-library`). For per-session
+ingest + a normalized latest-session report, dispatch `trackman-session-analyzer`
+as a subagent.
 
 ---
 

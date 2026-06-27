@@ -219,6 +219,80 @@ async def _login_cmd(headless: bool) -> int:
     return 0
 
 
+@mcp.tool
+async def analyze_and_store_session(activity_id: str) -> dict[str, Any]:
+    """Analyze one session, store the analysis locally, and return it.
+
+    Fetches the session detail, runs the deterministic analyzer (classify
+    warm-up vs serious practice vs game; per-session metrics; course difficulty;
+    normalization against previously stored sessions; used vs available clubs),
+    saves the result to the local store (kept to the last 30, latest first), and
+    returns the stored record. Intended to be driven by the analyzer skill.
+    """
+    from . import analysis, session_store
+
+    node = (await _run(queries.GET_SESSION, {"id": activity_id})).get("node") or {}
+    if not node:
+        return {"error": f"no session found for id {activity_id}"}
+
+    clubs_available: list[str] | None = None
+    try:
+        equip = (await _run(queries.CLUB_STATS, {"includeRetired": False})) \
+            .get("me", {}).get("equipment", {})
+        clubs_available = [
+            c.get("displayName") for c in (equip.get("clubs") or [])
+            if c.get("displayName")
+        ]
+    except Exception:  # club data is a nice-to-have, not required
+        clubs_available = None
+
+    history = [
+        r for r in session_store.list_analyses()
+        if r.get("session_id") != activity_id
+    ]
+    record = analysis.analyze(
+        node, session_id=activity_id, history=history,
+        clubs_available=clubs_available,
+    )
+    session_store.save_analysis(record)
+    return record
+
+
+@mcp.tool
+async def list_session_analyses() -> dict[str, Any]:
+    """List stored session analyses, most recent first (max 30).
+
+    Returns a lightweight index (id, time, kind, category, seriousness, summary)
+    plus the total count. Use `get_session_analysis` for a full record.
+    """
+    from . import session_store
+
+    items = session_store.list_analyses()
+    index = [
+        {
+            "session_id": r.get("session_id"),
+            "time": r.get("time"),
+            "kind": r.get("kind"),
+            "category": (r.get("analysis") or {}).get("category"),
+            "seriousness": (r.get("analysis") or {}).get("seriousness"),
+            "summary": (r.get("analysis") or {}).get("summary"),
+        }
+        for r in items
+    ]
+    return {"count": len(index), "latest_id": index[0]["session_id"] if index else None,
+            "items": index}
+
+
+@mcp.tool
+async def get_session_analysis(activity_id: str) -> dict[str, Any]:
+    """Get one full stored session-analysis record by id."""
+    from . import session_store
+
+    return session_store.get_analysis(activity_id) or {
+        "error": f"no stored analysis for {activity_id}"
+    }
+
+
 def main() -> None:
     """Console-script entry point.
 
