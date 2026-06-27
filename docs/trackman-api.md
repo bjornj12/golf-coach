@@ -68,8 +68,9 @@ locally with this client_id.
 
 - The MCP reads `TRACKMAN_TOKEN` from the environment (never logged, never
   returned to the model).
-- Tokens are short-lived (~1h). On `401`, the MCP surfaces a clear
-  "token expired — re-capture" error rather than failing silently.
+- Tokens last ~7 days (observed `iat`→`exp` = 604800s — a long-lived access
+  token). On `401`, the MCP surfaces a clear "token expired — re-capture" error
+  rather than failing silently.
 - Capture can be **automated** with the `claude-in-chrome` browser tools: drive
   the portal login (user types their own password), then read the `Authorization`
   header off the GraphQL network request. This keeps passwords out of the MCP.

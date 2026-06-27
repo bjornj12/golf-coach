@@ -37,7 +37,7 @@ log in for you — it uses a Bearer token from your session):
 2. DevTools → Network → filter `graphql` → click a request to
    `api.trackmangolf.com/graphql`
 3. Copy the `Authorization` header value into `TRACKMAN_TOKEN` (the part after
-   `Bearer `; the leading `Bearer ` is tolerated too). Tokens last ~1h.
+   `Bearer `; the leading `Bearer ` is tolerated too). Tokens last ~7 days.
 
 ## Run
 

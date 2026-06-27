@@ -91,8 +91,9 @@ under the signed-in user's `me` root.
 **Auth reality**: the web portal uses a *confidential* OIDC client (backend-for-
 frontend), so the MCP cannot run the OAuth exchange itself. It authenticates with
 a **Bearer access token captured from an authenticated portal session**
-(`TRACKMAN_TOKEN`), attached as `Authorization: Bearer …`. Tokens last ~1h; on
-`401` the tool returns a clear "re-capture token" error. Full detail and example
+(`TRACKMAN_TOKEN`), attached as `Authorization: Bearer …`. Tokens last ~7 days
+(observed: `iat`→`exp` = 604800s); on `401` the tool returns a clear
+"re-capture token" error. Full detail and example
 GraphQL queries live in `docs/trackman-api.md`.
 
 ---
