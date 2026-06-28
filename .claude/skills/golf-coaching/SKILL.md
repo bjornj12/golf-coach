@@ -93,13 +93,20 @@ save_training_plan({
     {"name": "...", "club": "...", "reps": N, "detail": "...",
      "link": "https://...", "goal": "<measurable Trackman goal>"}
   ],
-  "targets": {"<metric>": "<target range>", ...}
+  "targets": {"<metric>": "<human target range>", ...},
+  "target_specs": [
+    // MACHINE-READABLE targets so progress can be auto-verified. One per metric.
+    // metric = a Trackman Measurement field; club optional; op = < <= > >= between abs< abs<=
+    {"metric": "clubPath", "club": "DRIVER", "op": "between", "low": -1, "high": 2, "label": "club path"},
+    {"metric": "spinAxis", "club": "DRIVER", "op": "abs<", "value": 3, "label": "spin axis"}
+  ]
 })
 ```
 
-Tell the user it's saved and they can ask "what's today's training?" next time.
-If the new plan supersedes an old pending one, `mark_training_done` the old one
-(or leave it queued if it's still relevant).
+Always include **`target_specs`** when the targets are measurable shot metrics —
+that's what lets the coach grade progress later. Tell the user it's saved and they
+can ask "what's today's training?" next time. If the new plan supersedes an old
+pending one, `mark_training_done` the old one (or leave it queued).
 
 ## Recall — "what's today's training?"
 
@@ -107,14 +114,17 @@ If the new plan supersedes an old pending one, `mark_training_done` the old one
    offer to run a fresh diagnosis (Prescribe mode).
 2. Present the saved plan clearly: title, the blocks (club, reps, target, drill
    link), and the Trackman targets to hit.
-3. **Progress check (optional but valuable):** dispatch the
-   `trackman-session-analyzer` (forked) to refresh recent sessions, then look at
-   whether the **plan's target metrics** moved in the right direction since it was
-   created. If the latest serious session clearly addressed this plan and hit the
-   targets, congratulate the user and call
-   `mark_training_done(plan_id, result_session_id=<that session>)` so the next
-   plan becomes current. If not yet met, keep it as today's focus and note the
-   gap to the target.
+3. **Auto-grade progress:** call `verify_training_progress(plan_id)`. It reads
+   your most recent session with shots for the plan's target club and grades each
+   `target_spec` (session-mean value vs target, met / not yet). Show the result as
+   a small table (metric, your average, target, status).
+   - If `all_met` is true → congratulate the user and call
+     `mark_training_done(plan_id, result_session_id=<checked_session>)` so the next
+     plan becomes current; then present that next plan.
+   - If not → keep it as today's focus and point out exactly which metric is still
+     off and by how much (this is what to chase today).
+   - If `has_data` is false → there's no recent session for the target club yet;
+     just present the plan as today's work.
 
 ## Output
 

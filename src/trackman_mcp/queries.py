@@ -224,6 +224,32 @@ query ClubStats($includeRetired: Boolean) {
 }
 """
 
+# --- Full shot measurements for one session (verification) -----------------
+# Stroke-bearing kinds expose the full Measurement type (face/path/etc.).
+SESSION_MEASUREMENTS = """
+query SessionMeasurements($id: ID!) {
+  node(id: $id) {
+    __typename
+    ... on PlayerActivity { id time kind }
+    ... on SimulatorSessionActivity { strokes { club measurement {
+      clubPath faceAngle faceToPath spinAxis curve launchDirection
+      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+    ... on ShotAnalysisSessionActivity { strokes { club measurement {
+      clubPath faceAngle faceToPath spinAxis curve launchDirection
+      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+    ... on MapMyBagSessionActivity { strokes { club measurement {
+      clubPath faceAngle faceToPath spinAxis curve launchDirection
+      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+    ... on VirtualRangeSessionActivity { strokes { club measurement {
+      clubPath faceAngle faceToPath spinAxis curve launchDirection
+      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+    ... on SessionActivity { strokes { club measurement {
+      clubPath faceAngle faceToPath spinAxis curve launchDirection
+      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+  }
+}
+"""
+
 # --- Activity summary ------------------------------------------------------
 ACTIVITY_SUMMARY = """
 query ActivitySummary($timeFrom: DateTime, $timeTo: DateTime, $skip: Int, $take: Int) {

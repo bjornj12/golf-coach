@@ -120,10 +120,16 @@ The coach saves prescribed practice sessions so they can be recalled later
 | `get_next_training()` | Return the next pending plan — the answer to "what's today's training?". |
 | `list_training_plans(status?)` | List plans (oldest→newest), optional `pending`/`done` filter. |
 | `mark_training_done(plan_id, result_session_id?)` | Complete a plan; the next pending one becomes current. |
+| `verify_training_progress(plan_id, activity_id?)` | Grade a recent session's real shot metrics against the plan's structured `target_specs` (e.g. driver `clubPath` between -1 and +2). Returns per-target session-mean vs target, `all_met`, and a recommendation. |
 
-`golf-coaching` writes here (Prescribe → `save_training_plan`) and reads here
-(Recall → `get_next_training`, then `mark_training_done` once a session hits the
-plan's target metrics).
+Plans carry **`target_specs`** — machine-readable targets (`{metric, club?, op,
+value|low/high}`, ops `< <= > >= between abs< abs<=`) graded deterministically by
+`analysis.verify_targets` against a session's `Measurement` fields (queried via
+`SESSION_MEASUREMENTS`, which includes face/path/spin).
+
+`golf-coaching` writes here (Prescribe → `save_training_plan` with `target_specs`)
+and reads here (Recall → `get_next_training` → `verify_training_progress`, then
+`mark_training_done` once every target is met).
 
 **Auth reality**: the web portal uses a *confidential* OIDC client (backend-for-
 frontend), so the MCP cannot run the OAuth exchange itself. It authenticates with

@@ -339,6 +339,95 @@ def _summary(classification: dict, metrics: dict, normalized: dict) -> str:
     return "No analyzable shot data for this session."
 
 
+# --- training-target verification -----------------------------------------
+
+def shot_metric_values(
+    strokes: list[dict], metric: str, club_canon: str | None = None
+) -> list[float]:
+    """Collect a measurement metric across strokes, optionally filtered by club."""
+    out: list[float] = []
+    for s in strokes:
+        if club_canon and canonical_club(s.get("club")) != club_canon:
+            continue
+        val = (s.get("measurement") or {}).get(metric)
+        if isinstance(val, (int, float)):
+            out.append(float(val))
+    return out
+
+
+def _target_str(spec: dict) -> str:
+    op = spec.get("op")
+    if op == "between":
+        return f"{spec.get('low')}..{spec.get('high')}"
+    if isinstance(op, str) and op.startswith("abs"):
+        return f"|x| {op[3:] or '<'} {spec.get('value')}"
+    return f"{op} {spec.get('value')}"
+
+
+def evaluate_target(value: float | None, spec: dict) -> dict:
+    """Check one metric value against a target spec.
+
+    spec ops: '<' '<=' '>' '>=' 'between'(low/high) 'abs<' 'abs<='.
+    Returns {met: True|False|None} (None = no data / unknown op).
+    """
+    if value is None:
+        return {"met": None, "reason": "no data"}
+    op = spec.get("op")
+    try:
+        if op in ("<", "lt"):
+            met = value < spec["value"]
+        elif op in ("<=", "lte"):
+            met = value <= spec["value"]
+        elif op in (">", "gt"):
+            met = value > spec["value"]
+        elif op in (">=", "gte"):
+            met = value >= spec["value"]
+        elif op == "between":
+            met = spec["low"] <= value <= spec["high"]
+        elif op in ("abs<", "abslt"):
+            met = abs(value) < spec["value"]
+        elif op in ("abs<=", "abslte"):
+            met = abs(value) <= spec["value"]
+        else:
+            return {"met": None, "reason": f"unknown op {op!r}"}
+    except (KeyError, TypeError):
+        return {"met": None, "reason": "malformed target spec"}
+    return {"met": bool(met)}
+
+
+def verify_targets(strokes: list[dict], target_specs: list[dict]) -> dict:
+    """Grade a session's shots against a plan's structured target specs.
+
+    Each spec: {metric, club?, op, value|low/high, label?}. Returns per-target
+    results (session mean value, target, met) plus all_met / has_data.
+    """
+    results = []
+    has_data = False
+    for spec in target_specs:
+        club = spec.get("club")
+        club_canon = canonical_club(club) if club else None
+        values = shot_metric_values(strokes, spec.get("metric"), club_canon)
+        value = round(sum(values) / len(values), 2) if values else None
+        if values:
+            has_data = True
+        verdict = evaluate_target(value, spec)
+        results.append({
+            "metric": spec.get("metric"),
+            "label": spec.get("label", spec.get("metric")),
+            "club": club,
+            "value": value,
+            "n": len(values),
+            "target": _target_str(spec),
+            "met": verdict["met"],
+        })
+    decided = [r["met"] for r in results if r["met"] is not None]
+    return {
+        "results": results,
+        "all_met": bool(decided) and all(decided),
+        "has_data": has_data,
+    }
+
+
 def analyze(
     detail: dict,
     session_id: str,

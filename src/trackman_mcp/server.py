@@ -355,6 +355,82 @@ async def mark_training_done(
     return updated or {"error": f"no training plan with id {plan_id}"}
 
 
+@mcp.tool
+async def verify_training_progress(
+    plan_id: str, activity_id: str | None = None
+) -> dict[str, Any]:
+    """Grade a recent session against a saved plan's target metrics.
+
+    Reads the plan's `target_specs` (structured targets, e.g. driver clubPath
+    between -1 and +2), finds the session to check (the given `activity_id`, or
+    else the most recent session that has shots for the plan's target club),
+    pulls that session's real shot measurements, and reports each target's
+    session-mean value vs the target and whether it's met.
+
+    Returns per-target results, `all_met`, and a recommendation (e.g. mark the
+    plan done once every target is met). Does not auto-complete the plan.
+    """
+    from . import analysis, training_store
+
+    plan = training_store.get_plan(plan_id)
+    if not plan:
+        return {"error": f"no training plan with id {plan_id}"}
+    specs = plan.get("target_specs")
+    if not specs:
+        return {"error": "this plan has no machine-readable target_specs to verify",
+                "plan_id": plan_id}
+
+    target_clubs = {analysis.canonical_club(s.get("club")) for s in specs if s.get("club")}
+
+    async def _strokes_for(aid: str) -> tuple[dict, list]:
+        node = (await _run(queries.SESSION_MEASUREMENTS, {"id": aid})).get("node") or {}
+        return node, (node.get("strokes") or [])
+
+    chosen_id = activity_id
+    node, strokes = ({}, [])
+    if chosen_id:
+        node, strokes = await _strokes_for(chosen_id)
+    else:
+        # Newest first: first session that has shots for a target club.
+        acts = (await _run(queries.LIST_SESSIONS, {
+            "skip": 0, "take": 20, "kinds": None,
+            "timeFrom": None, "timeTo": None, "includeHidden": False,
+        })).get("me", {}).get("activities", {}).get("items", [])
+        for it in acts:
+            aid = it.get("id")
+            if not aid:
+                continue
+            n, s = await _strokes_for(aid)
+            has_target_club = any(
+                analysis.canonical_club(st.get("club")) in target_clubs for st in s
+            ) if target_clubs else bool(s)
+            if has_target_club:
+                chosen_id, node, strokes = aid, n, s
+                break
+
+    if not strokes:
+        return {"plan_id": plan_id, "checked_session": chosen_id,
+                "has_data": False,
+                "message": "No recent session with shots for this plan's target club(s)."}
+
+    verdict = analysis.verify_targets(strokes, specs)
+    return {
+        "plan_id": plan_id,
+        "plan_title": plan.get("title"),
+        "checked_session": chosen_id,
+        "session_time": node.get("time"),
+        "session_kind": node.get("kind"),
+        "results": verdict["results"],
+        "all_met": verdict["all_met"],
+        "has_data": verdict["has_data"],
+        "recommendation": (
+            "All targets met — call mark_training_done to graduate this plan."
+            if verdict["all_met"] else
+            "Not all targets met yet — keep this as the current focus."
+        ),
+    }
+
+
 def main() -> None:
     """Console-script entry point.
 
