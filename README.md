@@ -42,10 +42,27 @@ in once; the MCP captures the access token and caches it at
 later (tokens last ~7 days) just run:
 
 ```bash
-trackman-mcp login --headless   # silent refresh, no window — cron this weekly
+trackman-mcp login --headless   # silent refresh, no window
 ```
 
 The MCP loads the cached token automatically — no env var needed.
+
+### Keep it fresh automatically (optional)
+
+Schedule the headless refresh so you never think about tokens (twice weekly,
+margin on the ~7-day token). Portable — paths are derived at install time:
+
+```bash
+scripts/install-refresh-schedule.sh dry-run    # preview what gets installed
+scripts/install-refresh-schedule.sh            # install (macOS launchd / Linux cron)
+scripts/install-refresh-schedule.sh uninstall  # remove
+```
+
+Run a headed `trackman-mcp login` **once** first to establish the browser
+session; the schedule then refreshes it silently. If the saved session itself
+expires, the refresh logs a clear message (`~/.trackman-mcp/refresh.log`) and you
+just run a headed login again. Windows: schedule `scripts/refresh-token.sh` via
+Task Scheduler.
 
 ### Alternative: paste a token manually
 
