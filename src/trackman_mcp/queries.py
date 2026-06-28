@@ -233,19 +233,24 @@ query SessionMeasurements($id: ID!) {
     ... on PlayerActivity { id time kind }
     ... on SimulatorSessionActivity { strokes { club measurement {
       clubPath faceAngle faceToPath spinAxis curve launchDirection
-      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+      spinRate ballSpeed smashFactor carry total totalSide carrySide
+      attackAngle dynamicLoft } } }
     ... on ShotAnalysisSessionActivity { strokes { club measurement {
       clubPath faceAngle faceToPath spinAxis curve launchDirection
-      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+      spinRate ballSpeed smashFactor carry total totalSide carrySide
+      attackAngle dynamicLoft } } }
     ... on MapMyBagSessionActivity { strokes { club measurement {
       clubPath faceAngle faceToPath spinAxis curve launchDirection
-      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+      spinRate ballSpeed smashFactor carry total totalSide carrySide
+      attackAngle dynamicLoft } } }
     ... on VirtualRangeSessionActivity { strokes { club measurement {
       clubPath faceAngle faceToPath spinAxis curve launchDirection
-      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+      spinRate ballSpeed smashFactor carry total totalSide carrySide
+      attackAngle dynamicLoft } } }
     ... on SessionActivity { strokes { club measurement {
       clubPath faceAngle faceToPath spinAxis curve launchDirection
-      spinRate ballSpeed smashFactor carry attackAngle dynamicLoft } } }
+      spinRate ballSpeed smashFactor carry total totalSide carrySide
+      attackAngle dynamicLoft } } }
   }
 }
 """

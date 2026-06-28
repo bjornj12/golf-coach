@@ -32,3 +32,8 @@ build/
 
 # uv lock (optional to commit; ignoring for now)
 uv.lock
+
+# Generated visualizations (contain personal data)
+viz/
+*-viz.html
+*.viz.html
