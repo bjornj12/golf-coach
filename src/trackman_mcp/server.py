@@ -293,6 +293,68 @@ async def get_session_analysis(activity_id: str) -> dict[str, Any]:
     }
 
 
+@mcp.tool
+async def save_training_plan(plan: dict[str, Any]) -> dict[str, Any]:
+    """Save a prescribed training plan so the coach remembers it later.
+
+    The plan is a structured dict (the coach builds it), e.g.:
+    {
+      "title": "<short plan name>",
+      "focus": ["<gap it targets>"],
+      "diagnosis": "<one line: the numbers behind it>",
+      "blocks": [{"name": "<drill>", "club": "<club>", "reps": N,
+                  "detail": "…", "link": "https://…", "goal": "<measurable goal>"}],
+      "targets": {"<metric>": "<target range>"}
+    }
+    Adds it to the pending queue. Returns the stored plan (with id). Plans are
+    capped at the most recent 50.
+    """
+    from . import training_store
+
+    return training_store.save_plan(plan)
+
+
+@mcp.tool
+async def get_next_training() -> dict[str, Any]:
+    """Get the next pending training session — the answer to 'what's today's training?'.
+
+    Returns the oldest pending plan, or a note if there are none. Does not mark
+    it done; call `mark_training_done` once the session is completed.
+    """
+    from . import training_store
+
+    plan = training_store.next_pending()
+    if not plan:
+        return {"has_plan": False,
+                "message": "No pending training plan. Ask the coach for one."}
+    pending = training_store.list_plans(status="pending")
+    return {"has_plan": True, "plan": plan, "pending_count": len(pending)}
+
+
+@mcp.tool
+async def list_training_plans(status: str | None = None) -> dict[str, Any]:
+    """List stored training plans (oldest→newest). Optional status filter
+    ('pending' or 'done')."""
+    from . import training_store
+
+    plans = training_store.list_plans(status=status)
+    return {"count": len(plans), "plans": plans}
+
+
+@mcp.tool
+async def mark_training_done(
+    plan_id: str, result_session_id: str | None = None
+) -> dict[str, Any]:
+    """Mark a training plan completed (optionally link the session that did it).
+
+    After this, `get_next_training` returns the following pending plan.
+    """
+    from . import training_store
+
+    updated = training_store.mark_done(plan_id, result_session_id=result_session_id)
+    return updated or {"error": f"no training plan with id {plan_id}"}
+
+
 def main() -> None:
     """Console-script entry point.
 

@@ -108,6 +108,23 @@ or is a focused kind (shot analysis, find-my-distance, sim/virtual-range, etc.);
 **game** for played rounds. Normalization is always against sessions
 *chronologically before* the one analyzed. Units are metric (m/s, meters).
 
+### Training-plan tools (the coach's memory)
+
+The coach saves prescribed practice sessions so they can be recalled later
+("what's today's training?"). Store is JSON at `~/.trackman-mcp/training-plans.json`
+(`training_store.py`), an ordered queue capped at the most recent 50.
+
+| Tool | Does |
+|------|------|
+| `save_training_plan(plan)` | Persist a prescribed plan (title, focus, diagnosis, blocks, targets) to the pending queue. |
+| `get_next_training()` | Return the next pending plan — the answer to "what's today's training?". |
+| `list_training_plans(status?)` | List plans (oldest→newest), optional `pending`/`done` filter. |
+| `mark_training_done(plan_id, result_session_id?)` | Complete a plan; the next pending one becomes current. |
+
+`golf-coaching` writes here (Prescribe → `save_training_plan`) and reads here
+(Recall → `get_next_training`, then `mark_training_done` once a session hits the
+plan's target metrics).
+
 **Auth reality**: the web portal uses a *confidential* OIDC client (backend-for-
 frontend), so the MCP cannot run the OAuth exchange itself. It authenticates with
 a **Bearer access token captured from an authenticated portal session**, attached
