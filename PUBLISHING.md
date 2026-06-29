@@ -34,26 +34,32 @@ scripts/release.sh 0.2.0 --dry-run        # preview everything, change nothing
 scripts/release.sh patch --auto-approve   # skip the manual approval pause
 ```
 
-`release.sh` does the whole thing end to end:
+`release.sh` does the whole thing end to end. Because `main` is **protected**
+(no direct pushes), the version bump goes through a PR that you merge:
 
-1. bumps the version in `pyproject.toml`, `server.json`, and both plugin
-   manifests (consistently — it fails if any file's shape drifted),
+1. bumps the version in `pyproject.toml`, `server.json`, the plugin + marketplace
+   manifests, and the `.mcpb` manifest + launcher (it fails if any file's shape
+   drifted). `__version__` is read from the installed metadata, so it's not a
+   field you bump.
 2. runs the quality gate (`ruff` + `mypy` + `pytest`),
-3. commits, tags `vX.Y.Z`, and pushes — triggering the PyPI publish workflow,
-4. waits for the workflow and pauses for your one-click approval of the `pypi`
-   environment (or approves it for you with `--auto-approve`),
-5. waits until PyPI actually serves the new version, then
-6. runs `mcp-publisher publish` to update the MCP Registry.
+3. pushes a `release-X.Y.Z` branch and opens a PR (you as reviewer),
+4. **waits for you to merge the PR** (it opens it in your browser),
+5. tags `vX.Y.Z` on `main` and pushes the tag — triggering the publish workflow,
+6. waits for the workflow and pauses for your one-click `pypi` approval (or
+   approves it for you with `--auto-approve`),
+7. waits until PyPI serves the version, then runs `mcp-publisher publish`.
 
-The Claude Code plugin needs no publish step — it tracks `main`, and the
-`plugin.json` bump signals the new version.
+So a release is: run the command → merge the PR it opens → approve the deploy.
+The Claude Code plugin needs no publish step (it tracks `main`).
 
 ### Manual equivalent
 
-The tag must match `version` in `pyproject.toml` (the workflow enforces it):
+The bump must land on `main` via a PR first (protected branch); the tag must then
+match `version` in `pyproject.toml` (the workflow enforces it):
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0   # then approve the `pypi` deployment
+# on a branch: bump versions, open a PR, merge it, then from main:
+git tag vX.Y.Z && git push origin vX.Y.Z   # then approve the `pypi` deployment
 ```
 
 After the workflow succeeds, anyone can:

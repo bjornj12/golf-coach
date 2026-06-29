@@ -4,4 +4,10 @@ The server only fetches and returns raw data. All coaching/analysis lives in the
 Claude skills under skills/. See CLAUDE.md and docs/trackman-api.md.
 """
 
-__version__ = "0.1.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    # Single source of truth: the installed distribution's version (pyproject).
+    __version__ = version("trackman-mcp")
+except PackageNotFoundError:  # pragma: no cover - source tree without an install
+    __version__ = "0+unknown"
