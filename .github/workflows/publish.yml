@@ -53,3 +53,29 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  desktop-extension:
+    needs: publish      # only ship the .mcpb once the package it depends on is live
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # to create the GitHub Release and upload the asset
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build the Claude Desktop bundle (.mcpb)
+        run: |
+          npm install -g @anthropic-ai/mcpb
+          mkdir -p dist
+          mcpb pack mcpb dist/trackman-golf.mcpb
+
+      - name: Publish GitHub Release with the .mcpb attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/trackman-golf.mcpb \
+            --title "trackman-mcp $GITHUB_REF_NAME" --generate-notes \
+          || gh release upload "$GITHUB_REF_NAME" dist/trackman-golf.mcpb --clobber

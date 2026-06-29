@@ -36,3 +36,6 @@ build/
 viz/
 *-viz.html
 *.viz.html
+
+# the .mcpb launcher resolves deps at install time; no lock
+mcpb/uv.lock
