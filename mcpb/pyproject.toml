@@ -1,6 +1,6 @@
 [project]
 name = "trackman-golf-extension"
-version = "0.2.1"
+version = "0.2.2"
 description = "Claude Desktop extension launcher for the Trackman Golf MCP server."
 requires-python = ">=3.11"
 # The host (Claude Desktop) installs these with uv at runtime — cross-platform,
@@ -8,7 +8,7 @@ requires-python = ">=3.11"
 # The [login] extra bundles Playwright so a non-technical user can sign in from
 # inside Claude Desktop ("log in to Trackman" opens a browser) — no terminal.
 dependencies = [
-    "trackman-mcp[login]>=0.2.1",
+    "trackman-mcp[login]>=0.2.2",
 ]
 
 # This is a launcher env, not an installable package — don't try to build src/.
