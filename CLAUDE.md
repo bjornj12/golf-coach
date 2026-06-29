@@ -30,6 +30,12 @@ There is a **hard separation of concerns**. Respect it in every change:
 Why: coaching logic should be tunable by editing markdown, not redeploying a
 server. Keep judgment out of the server and data out of the skills.
 
+**Note on delivery (not a boundary break):** the server *serves* the skill
+markdown as **MCP prompts** (see `prompts.py`) so the coaching brain is available
+in any MCP client, not only the Claude Code plugin. This is transport, not logic:
+the server still computes no verdicts — it hands Claude the same skill text the
+plugin would. The single source of truth stays in `skills/`.
+
 If you find yourself adding "recommend a drill" logic to the MCP, stop — that
 belongs in a skill. If you find yourself hardcoding shot data in a skill, stop —
 that belongs behind an MCP tool.
@@ -76,18 +82,23 @@ All tools return **raw, structured data only**. No prose, no advice. Every tool
 calls the single GraphQL endpoint `POST https://api.trackmangolf.com/graphql`
 under the signed-in user's `me` root.
 
+The surface is **11 tools** (consolidated from an earlier 19). CRUD clusters use
+an `action` parameter so the model isn't choosing among many near-duplicate tools;
+the data reads stay discrete and well-named.
+
 | Tool | Backing (under `me`) | Returns |
 |------|----------------------|---------|
-| `authenticate` | OIDC token capture | Validates the current token; reports who you're signed in as (or that the session expired). Never echoes the token. |
-| `login` | Browser capture | (Re)authenticate. Tries a silent refresh first; if the saved session expired, opens a browser window to sign in. The friendly recovery path when tools report an expired session. |
+| `auth(action: status\|login, open_browser?)` | OIDC token capture / browser | `status`: validate the current token, report who you're signed in as (never echoes it). `login`: (re)authenticate — silent refresh first, else open a browser to sign in. |
 | `get_profile` | `profile` + `hcp` | Identity + current **handicap** (`hcp.currentHcp`). |
 | `get_handicap` | `hcp.playerHistory` | Handicap record history (differentials, trend). |
 | `list_sessions` | `activities(kinds,timeFrom,timeTo,skip,take)` | Practice + course activities (id, time, kind, summary). |
-| `get_session` | `node(id)` / `activities` | One activity in full: range strokes or round detail. |
+| `get_session` | `node(id)` / `activities` | One activity in full: range strokes **with shot-level launch metrics** (ball/club speed, smash, launch, spin, carry, side, curve, landing angle, ~80 fields) or round detail. (Absorbed the old `get_shot_data`.) |
 | `get_course_rounds` | `scorecards(skip,take,completed)` | Scorecards: per-hole scores, FIR/GIR, putts, `stat`. |
 | `get_club_stats` | `equipment.clubs.findMyDistance` | Per-club **gapping**: carry/total, std-dev, dispersion. |
-| `get_shot_data` | `*.measurement` (`Measurement`) | Shot launch metrics: ball/club speed, smash, launch, spin, carry, side, curve, landing angle (~80 fields). |
 | `get_activity_summary` | `activitySummary(timeFrom,timeTo)` | Counts per activity kind over a window. |
+| `session_analysis(action, activity_id?)` | see below | Per-session analysis cluster. |
+| `training_plan(action, …)` | see below | The coach's memory cluster. |
+| `build_visualization(data)` | local (deterministic) | A self-contained animated HTML artifact of a diagnosis. |
 
 ### Session-analysis tools (local store, deterministic analytics)
 
@@ -96,11 +107,13 @@ These persist and serve a per-session *analysis*. The analytics are
 coaching. Coaching narrative still lives in the skills. The store is JSON at
 `~/.trackman-mcp/session-analyses.json`, capped at the **last 30**, latest first.
 
-| Tool | Does |
-|------|------|
-| `analyze_and_store_session(activity_id)` | Fetch a session, classify (warm-up vs serious practice vs game), compute metrics + course difficulty, normalize vs previously stored sessions, flag used-vs-available clubs, store, return the record. |
-| `list_session_analyses()` | Index of stored analyses (id, time, kind, category, seriousness, summary), latest first. |
-| `get_session_analysis(activity_id)` | One full stored analysis record. |
+One tool, `session_analysis(action, activity_id?)`:
+
+| action | Does |
+|--------|------|
+| `analyze` (needs `activity_id`) | Fetch a session, classify (warm-up vs serious practice vs game), compute metrics + course difficulty, normalize vs previously stored sessions, flag used-vs-available clubs, store, return the record. |
+| `list` | Index of stored analyses (id, time, kind, category, seriousness, summary), latest first. |
+| `get` (needs `activity_id`) | One full stored analysis record. |
 
 Classification (see `analysis.py`): a session is a **warm-up** (not an
 improvement attempt) if under ~8 strokes or ~5 minutes — even for an otherwise
@@ -115,22 +128,25 @@ The coach saves prescribed practice sessions so they can be recalled later
 ("what's today's training?"). Store is JSON at `~/.trackman-mcp/training-plans.json`
 (`training_store.py`), an ordered queue capped at the most recent 50.
 
-| Tool | Does |
-|------|------|
-| `save_training_plan(plan)` | Persist a prescribed plan (title, focus, diagnosis, blocks, targets) to the pending queue. |
-| `get_next_training()` | Return the next pending plan — the answer to "what's today's training?". |
-| `list_training_plans(status?)` | List plans (oldest→newest), optional `pending`/`done` filter. |
-| `mark_training_done(plan_id, result_session_id?)` | Complete a plan; the next pending one becomes current. |
-| `verify_training_progress(plan_id, activity_id?)` | Grade a recent session's real shot metrics against the plan's structured `target_specs` (e.g. driver `clubPath` between -1 and +2). Returns per-target session-mean vs target, `all_met`, and a recommendation. |
+One tool, `training_plan(action, plan?, plan_id?, status?, activity_id?, result_session_id?)`:
+
+| action | Does |
+|--------|------|
+| `save` (needs `plan`) | Persist a prescribed plan (title, focus, diagnosis, blocks, targets, `target_specs`) to the pending queue. |
+| `next` | Return the next pending plan — the answer to "what's today's training?". |
+| `list` (optional `status`) | List plans (oldest→newest), optional `pending`/`done` filter. |
+| `done` (needs `plan_id`) | Complete a plan; the next pending one becomes current. |
+| `verify` (needs `plan_id`, optional `activity_id`) | Grade a recent session's real shot metrics against the plan's structured `target_specs` (e.g. driver `clubPath` between -1 and +2). Returns per-target session-mean vs target, `all_met`, and a recommendation. |
 
 Plans carry **`target_specs`** — machine-readable targets (`{metric, club?, op,
 value|low/high}`, ops `< <= > >= between abs< abs<=`) graded deterministically by
 `analysis.verify_targets` against a session's `Measurement` fields (queried via
 `SESSION_MEASUREMENTS`, which includes face/path/spin).
 
-`golf-coaching` writes here (Prescribe → `save_training_plan` with `target_specs`)
-and reads here (Recall → `get_next_training` → `verify_training_progress`, then
-`mark_training_done` once every target is met).
+`golf-coaching` writes here (Prescribe → `training_plan(action="save")` with
+`target_specs`) and reads here (Recall → `training_plan(action="next")` →
+`training_plan(action="verify")`, then `training_plan(action="done")` once every
+target is met).
 
 **Auth reality**: the web portal uses a *confidential* OIDC client (backend-for-
 frontend), so the MCP cannot run the OAuth exchange itself. It authenticates with
@@ -141,8 +157,8 @@ as `Authorization: Bearer …`. Tokens last ~7 days (observed `iat`→`exp` =
 **Recovery when expired**: data tools auto-retry once after a silent headless
 refresh (`_try_silent_refresh`), so a stale 7-day token renews invisibly while the
 browser session is still valid. When the browser session itself expires, tools
-return a clear "session expired — use the `login` tool" message, and the `login`
-tool opens a sign-in window (falling back from a fast silent attempt).
+return a clear "session expired — use auth(action='login')" message, and that
+action opens a sign-in window (falling back from a fast silent attempt).
 
 **Getting the token** — two paths (`Config.from_env`: `TRACKMAN_TOKEN` env wins,
 else the cached token):
@@ -210,7 +226,9 @@ trackman-mcp-client/
 ## Skills (the coaching brain)
 
 Skills live in `skills/` (the Claude Code plugin-root layout, so they ship with
-the plugin). Each has a `SKILL.md`.
+the plugin). Each has a `SKILL.md`. They are **also served as MCP prompts** by
+the server (`prompts.py`), so any MCP client (e.g. Claude Desktop) can use them —
+all except the dev-only `trackman-api-discovery`.
 
 - **`trackman-api-discovery`** — Phase 0. Reverse-engineer the portal's auth +
   data endpoints via the browser network panel; write them into
@@ -226,10 +244,10 @@ the plugin). Each has a `SKILL.md`.
   session. **Context-forked / data-collection skill: must run in a subagent,
   never on the main thread.**
 
-Typical flow: `authenticate` → `trackman-stats-analysis` (diagnose) →
+Typical flow: `auth(action="status")` → `trackman-stats-analysis` (diagnose) →
 `golf-coaching` (prescribe, pulling from `drill-library`). For per-session
 ingest + a normalized latest-session report, dispatch `trackman-session-analyzer`
-as a subagent.
+as a subagent (in Claude Code; in other clients invoke the prompt directly).
 
 ---
 

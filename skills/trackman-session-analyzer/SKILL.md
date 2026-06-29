@@ -24,31 +24,31 @@ section. If you are the dispatched subagent, proceed with the workflow.
 
 ## Inputs / tools used (all from the `trackman-golf` MCP)
 
-`authenticate`, `list_sessions`, `analyze_and_store_session`,
-`list_session_analyses`, `get_session_analysis`. The heavy lifting (classify,
+`auth`, `list_sessions`, `session_analysis(action="analyze")`,
+`session_analysis(action="list")`, `session_analysis(action="get")`. The heavy lifting (classify,
 metrics, course difficulty, normalization, used-vs-available clubs) is done
-deterministically inside `analyze_and_store_session` — your job is orchestration
+deterministically inside `session_analysis(action="analyze")` — your job is orchestration
 and narration, not recomputing numbers.
 
 ## Workflow (subagent)
 
-1. **Auth check.** Call `authenticate`. If not authenticated, stop and report
+1. **Auth check.** Call `auth`. If not authenticated, stop and report
    that the user needs to run `trackman-mcp login` — do not fabricate data.
 
 2. **Pull recent sessions.** Call `list_sessions` with `take: 30` (newest
    first). This includes both practice activities and course rounds.
 
-3. **Find what's new.** Call `list_session_analyses` to get already-stored ids.
+3. **Find what's new.** Call `session_analysis(action="list")` to get already-stored ids.
 
 4. **Analyze + store new sessions, OLDEST first.** Reverse the fetched list and
    walk it oldest → newest. For each session whose id is not already stored, call
-   `analyze_and_store_session(activity_id)`. Oldest-first matters: each session is
+   `session_analysis(action="analyze", activity_id)`. Oldest-first matters: each session is
    normalized against the sessions chronologically before it, so the history must
    already be stored when the newest session is analyzed. The store keeps only the
    last 30. Skip nothing silently — if a call errors, note it and continue.
 
-5. **Read back the latest.** Call `list_session_analyses` again, take
-   `latest_id`, then `get_session_analysis(latest_id)` for the full record.
+5. **Read back the latest.** Call `session_analysis(action="list")` again, take
+   `latest_id`, then `session_analysis(action="get", activity_id=latest_id)` for the full record.
 
 6. **Summarize the latest session** using that record (see format below). Use
    the record's own fields — `category`, `seriousness`, `is_improvement_attempt`,

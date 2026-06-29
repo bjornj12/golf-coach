@@ -98,14 +98,15 @@ async def test_get_club_stats(patch_transport):
     assert result["clubs"][0]["findMyDistance"]["clubStats"]["carry"] == 165.0
 
 
-async def test_get_shot_data(patch_transport):
+async def test_get_session_course_play_shots(patch_transport):
+    # get_session now also covers what get_shot_data used to: per-shot metrics.
     patch_transport({"node": {
         "__typename": "CoursePlayActivity",
         "scorecard": {"holes": [{"shots": [
             {"club": "DRIVER", "measurement": {"ballSpeed": 165.0, "smashFactor": 1.48}},
         ]}]},
     }})
-    result = await server.get_shot_data(activity_id="a2")
+    result = await server.get_session(activity_id="a2")
     shot = result["scorecard"]["holes"][0]["shots"][0]
     assert shot["measurement"]["smashFactor"] == 1.48
 
@@ -119,10 +120,10 @@ async def test_get_activity_summary(patch_transport):
     assert result["items"][0]["activityCount"] == 12
 
 
-async def test_authenticate_without_token(monkeypatch, tmp_path):
+async def test_auth_status_without_token(monkeypatch, tmp_path):
     monkeypatch.delenv("TRACKMAN_TOKEN", raising=False)
     monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))  # empty cache
-    result = await server.authenticate()
+    result = await server.auth(action="status")
     assert result["authenticated"] is False
 
 
@@ -134,13 +135,7 @@ async def test_get_session_raises_on_missing_node(patch_transport):
         await server.get_session(activity_id="nope")
 
 
-async def test_get_shot_data_raises_on_missing_node(patch_transport):
-    patch_transport({"node": None})
-    with pytest.raises(ValueError, match="nope"):
-        await server.get_shot_data(activity_id="nope")
-
-
-async def test_authenticate_success_never_echoes_token(monkeypatch):
+async def test_auth_status_success_never_echoes_token(monkeypatch):
     secret = "super.secret.jwt"
 
     async def fake_whoami(self):
@@ -148,14 +143,14 @@ async def test_authenticate_success_never_echoes_token(monkeypatch):
 
     monkeypatch.setenv("TRACKMAN_TOKEN", secret)
     monkeypatch.setattr(TrackmanClient, "whoami", fake_whoami)
-    result = await server.authenticate()
+    result = await server.auth(action="status")
     assert result["authenticated"] is True
     assert result["name"] == "Pat"
     # The bearer token must never appear anywhere in the tool response.
     assert secret not in repr(result)
 
 
-async def test_analyze_and_store_session_persists(patch_transport, monkeypatch, tmp_path):
+async def test_session_analysis_analyze_and_list(patch_transport, monkeypatch, tmp_path):
     monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
     patch_transport({"node": {
         "__typename": "RangePracticeActivity", "kind": "RANGE_PRACTICE",
@@ -163,26 +158,31 @@ async def test_analyze_and_store_session_persists(patch_transport, monkeypatch, 
         "strokes": [{"club": "DRIVER", "time": f"2026-06-01T10:{i:02d}:00Z",
                      "measurement": {"carry": 200.0 + i}} for i in range(0, 30, 2)],
     }})
-    rec = await server.analyze_and_store_session(activity_id="r1")
+    rec = await server.session_analysis(action="analyze", activity_id="r1")
     assert rec["session_id"] == "r1"
-    # It was actually stored and is retrievable via the index tool.
-    listed = await server.list_session_analyses()
+    listed = await server.session_analysis(action="list")
     assert listed["count"] == 1
     assert listed["latest_id"] == "r1"
 
 
+async def test_session_analysis_analyze_requires_id():
+    with pytest.raises(ValueError):
+        await server.session_analysis(action="analyze")
+
+
 async def test_training_plan_lifecycle(monkeypatch, tmp_path):
     monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
-    saved = await server.save_training_plan({"title": "Driver path", "focus": ["slice"]})
+    saved = await server.training_plan(action="save",
+                                       plan={"title": "Driver path", "focus": ["slice"]})
     pid = saved["id"]
-    nxt = await server.get_next_training()
+    nxt = await server.training_plan(action="next")
     assert nxt["has_plan"] is True
     assert nxt["plan"]["id"] == pid
-    done = await server.mark_training_done(pid, result_session_id="r1")
+    done = await server.training_plan(action="done", plan_id=pid, result_session_id="r1")
     assert done["status"] == "done"
-    assert (await server.get_next_training())["has_plan"] is False
+    assert (await server.training_plan(action="next"))["has_plan"] is False
 
 
-async def test_save_training_plan_rejects_empty():
+async def test_training_plan_save_rejects_empty():
     with pytest.raises(ValueError):
-        await server.save_training_plan({})
+        await server.training_plan(action="save", plan={})

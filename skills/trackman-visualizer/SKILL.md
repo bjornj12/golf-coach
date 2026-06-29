@@ -24,8 +24,8 @@ You need three things; reuse what the coach already gathered, or pull via the MC
    Several shots → dispersion; one → a single tracer. Get them from
    `get_session` / the `SESSION_MEASUREMENTS` query, filtered to the club.
 2. **Swing** — `clubPath`, `faceAngle`, `faceToPath` (mean over those shots).
-3. **Targets** — from the saved plan (`get_next_training` /
-   `list_training_plans`) and/or `verify_training_progress`: each as
+3. **Targets** — from the saved plan (`training_plan(action="next")` /
+   `training_plan(action="list")`) and/or `training_plan(action="verify")`: each as
    `{label, value, target, low, high, met}`.
 
 Also note **handedness** (`profile.dexterity`) — it sets which way "right" is.
