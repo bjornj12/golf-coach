@@ -78,17 +78,28 @@ def load_skills() -> list[SkillPrompt]:
     return out
 
 
+def _make_render(body: str):
+    """Build a zero-argument render function that returns `body`.
+
+    The body is captured in the closure — NOT as a function parameter — so the
+    prompt exposes no arguments. (A parameter, even with a default, would surface
+    as a required/optional input in the client UI.)
+    """
+    def render() -> str:
+        return body
+
+    return render
+
+
 def register_skill_prompts(mcp) -> int:
-    """Register one MCP prompt per user-facing skill. Returns the count."""
+    """Register one (argument-less) MCP prompt per user-facing skill. Returns count."""
     from fastmcp.prompts import Prompt
 
     skills = load_skills()
     for skill in skills:
-        def _render(_body: str = skill.body) -> str:
-            return _body
-
-        _render.__doc__ = skill.description
         mcp.add_prompt(
-            Prompt.from_function(_render, name=skill.name, description=skill.description)
+            Prompt.from_function(
+                _make_render(skill.body), name=skill.name, description=skill.description
+            )
         )
     return len(skills)
