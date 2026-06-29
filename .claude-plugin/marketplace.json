@@ -3,7 +3,7 @@
   "owner": { "name": "Bjorn Jonsson", "email": "bjorn@avo.sh" },
   "metadata": {
     "description": "Single-plugin marketplace for the Trackman Golf MCP + coaching skills.",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "plugins": [
     {
