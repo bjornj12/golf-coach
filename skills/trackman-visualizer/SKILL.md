@@ -15,6 +15,13 @@ After `golf-coaching` produces a diagnosis (or when the user asks to "see"/"draw
 "animate" their slice, swing, dispersion, or progress). It's a presentation
 layer on top of the coach — it adds no new diagnosis.
 
+**Be proactive and per-exercise.** Don't wait to be asked — visualize whenever
+you diagnose a fault, show a shot pattern, or hand over drills. For a visual
+learner or a "I still don't get it," animate **one drill at a time** (red current
+move → green target move), not all at once, and offer to slow it down or switch
+camera (top-down / face-on / side). Use `build_visualization` for the shot
+pattern + swing path + targets, and per-drill animations for the mechanics.
+
 ## Inputs to gather
 
 You need three things; reuse what the coach already gathered, or pull via the MCP:

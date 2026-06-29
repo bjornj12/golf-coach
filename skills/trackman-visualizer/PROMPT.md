@@ -5,6 +5,21 @@ ball-flight curve, an animated swing path showing *why* the ball curves, and
 progress bars vs the plan's targets. Use real shot data — never invent shapes.
 This is a presentation layer; it adds no new diagnosis.
 
+**Lead with it — don't wait to be asked.** Any time you diagnose a fault, show a
+shot pattern, or prescribe drills, produce a visual. Many golfers (especially
+self-described visual learners, or anyone who says "I don't get it") only grasp
+the fault when they *see it move*. Two modes:
+
+- **Shot pattern + swing path + targets** — the standard `build_visualization`
+  artifact below. Great for "here's your slice and why."
+- **One drill at a time** — if a drill isn't clicking, animate that single
+  drill's intended motion: the red current move (e.g. out-to-in, face open) vs
+  the green target move. Show them **one per exercise**, not all at once — that's
+  what makes mechanics land. Use `build_visualization` with the drill's target
+  `swing` + a one-line `diagnosis`, or the client's own HTML/SVG artifact
+  capability for a richer per-drill animation. Offer to slow it down or change
+  the camera (top-down vs face-on vs side) if it still isn't clear.
+
 ## Gather the inputs (reuse what the coach already pulled, or fetch via the MCP)
 
 1. **Shot shape** — driver (or target club) measurements from the relevant

@@ -9,6 +9,10 @@ A maintained library of golf drills mapped to weaknesses, each with a vetted
 YouTube link, **plus** a procedure for finding fresh videos when the library
 doesn't have a good match. Used by `golf-coaching` to fill practice blocks.
 
+**Every drill handed to the user ships with a video link — no exceptions.** If
+the table has no link, live-search and verify one first; never give a drill
+without a video, and never invent a URL.
+
 ## How to use
 
 1. Identify the weakness category from the diagnosis (see categories below).
@@ -21,7 +25,28 @@ doesn't have a good match. Used by `golf-coaching` to fill practice blocks.
 
 `driver-launch` · `dispersion-irons` · `gapping` · `wedge-distance-control` ·
 `strike-low-point` · `start-line-face-control` · `putting-speed` ·
-`putting-start-line` · `short-game-chipping` · `on-course-strategy`
+`putting-start-line` · `short-game-chipping` · `on-course-strategy` ·
+`at-home-no-ball`
+
+## At-home / no-ball drills (no range, no ball — just the club)
+
+Use when the user can't get to a range or asks what they can do at home/in the
+yard, or for path/face faults where rehearsal beats ball-striking. Map by the
+diagnosed fault:
+
+| Drill | Fixes | What to do |
+|-------|-------|-----------|
+| Wall / fence | over-the-top, out-to-in path | Wall a clubhead's length off the trail shoulder along the target line; slow swings that miss it force the club inside. |
+| Pump-and-drop | the over-the-top transition | At the top, pump hands down twice (trail elbow tucks, club shallows behind), then finish. |
+| Trail-arm-only throws | inside path + face closing | Trail hand only; slow "skip a stone to right field" swings. |
+| Split-hands release | open face at impact | Hands a few inches apart; slow half-swings, feel the trail forearm cross over. |
+| Step-through | sequencing | Feet together; step toward target with the lead foot as you start down, then swing. |
+| Mirror face check | open-face awareness | Rehearse impact in a mirror; learn what square looks like vs your open habit. |
+| Towel under trail arm | connection / over-the-top | Trap a towel under the trail armpit through transition to keep the arm connected. |
+
+Tell the user: go slow and over-correct (neutral will feel like a hook at
+first); daily beats weekly; swing at a dandelion/tee for start-line feedback.
+Best shown animated one drill at a time (see `trackman-visualizer`).
 
 ## Curated library
 

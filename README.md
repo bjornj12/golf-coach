@@ -139,10 +139,11 @@ The skills under [`skills/`](./skills) are delivered two ways:
 | Skill | What it does |
 |-------|--------------|
 | `trackman-stats-analysis` | Diagnose weaknesses from the data |
-| `golf-coaching` | Turn the diagnosis into an actionable practice plan |
-| `drill-library` | Curated drills + vetted YouTube links, plus live search |
+| `golf-coaching` | Turn the diagnosis into an actionable practice plan (visual-first; auto-grades progress) |
+| `drill-library` | Curated drills + vetted links — incl. **at-home / no-ball** drills — plus live search |
+| `golf-practice-at-home` | Build a daily **no-ball** routine for a diagnosed fault, animated per drill |
 | `trackman-session-analyzer` | Ingest + normalize recent sessions |
-| `trackman-visualizer` | Animate a diagnosis as an HTML artifact |
+| `trackman-visualizer` | Animate a diagnosis (or a single drill's mechanics) as an HTML artifact |
 
 (`trackman-api-discovery` is a project/dev skill and isn't served as a prompt.)
 

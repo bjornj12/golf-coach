@@ -240,10 +240,15 @@ all except the dev-only `trackman-api-discovery`.
   `docs/trackman-api.md`.
 - **`trackman-stats-analysis`** — Pull stats through the MCP and diagnose weak
   areas (dispersion, gapping, scoring trends, handicap movement). Analysis only.
-- **`golf-coaching`** — Turn the diagnosis into specific, actionable practice:
-  an example session, drills, and YouTube links. The coach persona.
-- **`drill-library`** — Curated drills + vetted YouTube links, plus the
-  procedure for live web-searching fresh videos matched to a weakness.
+- **`golf-coaching`** — Turn the diagnosis into specific, actionable practice.
+  The coach persona — **visual-first** (visualizes by default), includes an
+  at-home/no-ball option, and **grades progress proactively** against the saved
+  plan.
+- **`drill-library`** — Curated drills + vetted YouTube links (incl. an
+  **at-home / no-ball** set), plus the live-search procedure for fresh videos.
+- **`golf-practice-at-home`** — Build a short **daily no-ball routine** for a
+  diagnosed fault (yard/living room, just a club), animated per drill, saved as
+  a training plan.
 - **`trackman-session-analyzer`** — Ingests recent sessions, stores a per-session
   analysis (last 30) via the MCP, and returns a normalized summary of the latest
   session. **Context-forked / data-collection skill: must run in a subagent,

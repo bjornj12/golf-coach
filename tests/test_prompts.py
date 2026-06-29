@@ -12,6 +12,7 @@ USER_FACING = {
     "drill-library",
     "trackman-visualizer",
     "trackman-session-analyzer",
+    "golf-practice-at-home",
 }
 
 

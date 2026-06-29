@@ -4,6 +4,10 @@ A library of golf drills mapped to weaknesses, each with a vetted YouTube link,
 **plus** a procedure for finding fresh videos when nothing fits. Use it to fill
 the practice blocks in a coaching plan.
 
+**Every drill you hand the user ships with a video link — no exceptions.** If the
+table has no link for it, run Live search and verify one before giving it. Never
+hand over a drill without a video, and never invent a URL.
+
 ## How to use
 
 1. Identify the weakness category from the diagnosis (below).
@@ -15,7 +19,36 @@ the practice blocks in a coaching plan.
 
 `driver-launch` · `dispersion-irons` · `gapping` · `wedge-distance-control` ·
 `strike-low-point` · `start-line-face-control` · `putting-speed` ·
-`putting-start-line` · `short-game-chipping` · `on-course-strategy`
+`putting-start-line` · `short-game-chipping` · `on-course-strategy` ·
+`at-home-no-ball`
+
+## At-home / no-ball drills (no range, no ball, just the club)
+
+Reach for these whenever the user can't get to a range, asks "what can I do at
+home / in the yard / without a ball," or has a path/face fault where rehearsal
+beats ball-striking (there's no result to chase, so the new motion grooves
+faster). Each maps to a specific fault — pick by the diagnosis.
+
+| Drill | Fixes | What to do |
+|-------|-------|-----------|
+| **Wall / fence** | over-the-top, out-to-in path | Set a wall a clubhead's length off the trail shoulder along the target line; slow swings that *miss* it force the club to drop inside. Instant feedback. |
+| **Pump-and-drop** | the over-the-top *transition* | At the top, pump the hands down twice feeling the trail elbow tuck and the club shallow behind you, then finish. Grooves the slot. |
+| **Trail-arm-only throws** | inside path **+** face closing | Club in the trail hand only; slow "skip a stone to right field" swings. Brings it from inside and rotates the forearm to square the face. |
+| **Split-hands release** | open face at impact | Hands a few inches apart; slow half-swings through impact so the trail forearm crosses over — exaggerates squaring the face. |
+| **Step-through** | sequencing (arms over-the-top) | Feet together; step toward the target with the lead foot as you start down, then swing — lower body leads instead of the arms heaving over. |
+| **Mirror face check** | open clubface awareness | In a mirror, rehearse impact and check the leading edge; learn what square *looks* like vs your habitual open. |
+| **Towel/headcover under trail arm** | connection / over-the-top | Trap a towel under the trail armpit through the backswing/transition; keeps the arm connected so the club doesn't fly out and over. |
+
+**Ground rules to tell the user (these make it transfer):**
+- **Go slow and over-correct.** For an ingrained out-to-in/open-face habit, a
+  genuinely neutral move will *feel* like a wild hook for a while — it isn't.
+- **Daily beats weekly.** 5 minutes/day rewires the pattern faster than one long
+  session.
+- **Want start-line feedback without a ball?** Swing at a dandelion head or a tee
+  in the grass — direction feedback, zero pressure.
+
+These are **best shown animated, one drill at a time** (red current move → green
+target move) — see the `trackman-visualizer` prompt.
 
 ## Curated library
 
