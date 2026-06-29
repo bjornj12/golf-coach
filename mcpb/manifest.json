@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "trackman-golf",
   "display_name": "Trackman Golf",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Your Trackman Golf stats as MCP tools — handicap, rounds, practice, shot data, club gapping.",
   "long_description": "Connects to Trackman Golf with your own account and exposes your stats — course rounds, practice sessions, shot-level launch-monitor data, club gapping, and handicap — as MCP tools, so Claude can analyze your game and coach you. Runs locally; your data and token never leave your machine. Requires a Trackman account.",
   "author": {
