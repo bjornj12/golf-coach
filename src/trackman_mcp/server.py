@@ -27,7 +27,10 @@ mcp = FastMCP(
         "handicap, practice/course sessions, scorecards, shot-level launch "
         "metrics, and club gapping. Returns raw data only — interpret it with "
         "the coaching prompts this server provides. Call `auth` (action='status') "
-        "first to confirm the token works."
+        "first. If it reports the user isn't signed in or the session expired, "
+        "call `auth` (action='login') — it opens a browser window for a one-time "
+        "sign-in (no terminal or token needed) — then retry. Never ask the user "
+        "to paste a token or run terminal commands unless they ask how."
     ),
 )
 
@@ -84,8 +87,9 @@ async def _auth_status() -> dict[str, Any]:
     if not config.has_token:
         return {
             "authenticated": False,
-            "reason": "No Trackman token. You're not signed in.",
-            "how_to_fix": "Call auth(action='login'), or run `trackman-mcp login`.",
+            "reason": "Not signed in to Trackman yet.",
+            "how_to_fix": "Call auth(action='login') — a browser window opens for a "
+                          "one-time sign-in (no terminal or token needed).",
         }
     try:
         async with TrackmanClient(config) as client:
@@ -94,7 +98,8 @@ async def _auth_status() -> dict[str, Any]:
         return {
             "authenticated": False,
             "reason": "Your Trackman session has expired.",
-            "how_to_fix": "Call auth(action='login') to sign in again.",
+            "how_to_fix": "Call auth(action='login') — a browser window opens to "
+                          "sign in again (no terminal needed).",
         }
     # Identity claims only; never echo the token.
     return {

@@ -4,7 +4,7 @@
   "display_name": "Trackman Golf",
   "version": "0.2.1",
   "description": "Your Trackman Golf stats as MCP tools — handicap, rounds, practice, shot data, club gapping.",
-  "long_description": "Connects to Trackman Golf with your own account and exposes your stats — course rounds, practice sessions, shot-level launch-monitor data, club gapping, and handicap — as MCP tools, so Claude can analyze your game and coach you. Runs locally; your data and token never leave your machine. Requires a Trackman account.",
+  "long_description": "Connects to Trackman Golf with your own account and exposes your stats — course rounds, practice sessions, shot-level launch-monitor data, club gapping, and handicap — as MCP tools, so Claude can analyze your game and coach you. Runs locally; your data and token never leave your machine. To sign in, just tell Claude \"log in to Trackman\" — a browser window opens, you sign in once, done. No terminal, no token. Requires a Trackman account.",
   "author": {
     "name": "Bjorn Jonsson",
     "email": "bjorn@avo.sh"
@@ -27,8 +27,8 @@
   "user_config": {
     "trackman_token": {
       "type": "string",
-      "title": "Trackman token (optional)",
-      "description": "Paste a Bearer token from an authenticated Trackman portal session. Leave blank if you've run `trackman-mcp login` in a terminal — the server then uses the cached token automatically. See the project README for both options.",
+      "title": "Trackman token (optional — leave blank)",
+      "description": "Most people should leave this blank: after installing, just tell Claude \"log in to Trackman\" and a browser window opens to sign in. This field is only for advanced users who'd rather paste a Bearer token captured from an authenticated Trackman portal session.",
       "sensitive": true,
       "required": false,
       "default": ""

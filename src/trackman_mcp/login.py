@@ -41,6 +41,24 @@ def _log(message: str) -> None:
     print(message, file=sys.stderr)
 
 
+def _ensure_chromium() -> None:
+    """Download Playwright's Chromium (one-time) so login works with no browser.
+
+    Used only for an interactive sign-in when neither Google Chrome nor a bundled
+    browser is available — so a non-technical user needs nothing pre-installed.
+    Output is captured (never reaches the stdio protocol stream).
+    """
+    import subprocess
+
+    _log("  ▸ first-time setup: downloading a browser to sign you in (one-time)…")
+    subprocess.run(
+        [sys.executable, "-m", "playwright", "install", "chromium"],
+        check=True,
+        capture_output=True,
+        timeout=600,
+    )
+
+
 class TrackmanLoginError(Exception):
     """Login/capture failed (e.g. user didn't finish, or session expired)."""
 
@@ -118,14 +136,31 @@ async def capture_token(headless: bool = False, timeout_seconds: float = 300.0) 
 
     async with async_playwright() as p:
         profile = str(token_store.browser_profile_dir())
-        try:
-            context = await p.chromium.launch_persistent_context(
-                profile, channel="chrome", headless=headless
-            )
-        except Exception:
-            context = await p.chromium.launch_persistent_context(
-                profile, headless=headless
-            )
+
+        async def _open():
+            # Prefer the user's Google Chrome; fall back to Playwright's Chromium.
+            try:
+                return await p.chromium.launch_persistent_context(
+                    profile, channel="chrome", headless=headless
+                )
+            except Exception:
+                pass
+            try:
+                return await p.chromium.launch_persistent_context(
+                    profile, headless=headless
+                )
+            except Exception:
+                # No Chrome and no bundled browser. For an interactive sign-in,
+                # download Chromium once so a non-technical user needs nothing
+                # pre-installed. (Silent refresh stays fast — never downloads.)
+                if headless:
+                    raise
+                await asyncio.to_thread(_ensure_chromium)
+                return await p.chromium.launch_persistent_context(
+                    profile, headless=headless
+                )
+
+        context = await _open()
 
         context.on("request", on_request)
         page = context.pages[0] if context.pages else await context.new_page()

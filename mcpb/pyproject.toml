@@ -5,8 +5,10 @@ description = "Claude Desktop extension launcher for the Trackman Golf MCP serve
 requires-python = ">=3.11"
 # The host (Claude Desktop) installs these with uv at runtime — cross-platform,
 # compiled wheels included. The server itself comes from the published package.
+# The [login] extra bundles Playwright so a non-technical user can sign in from
+# inside Claude Desktop ("log in to Trackman" opens a browser) — no terminal.
 dependencies = [
-    "trackman-mcp>=0.2.1",
+    "trackman-mcp[login]>=0.2.1",
 ]
 
 # This is a launcher env, not an installable package — don't try to build src/.

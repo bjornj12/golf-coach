@@ -80,7 +80,7 @@ edits = [
     ("mcpb/manifest.json",              [(r'"version": "%s"' % re.escape(cur), '"version": "%s"' % new, 1)]),
     ("mcpb/pyproject.toml", [
         (r'(?m)^version = "%s"' % re.escape(cur), 'version = "%s"' % new, 1),
-        (r'trackman-mcp>=%s' % re.escape(cur), 'trackman-mcp>=%s' % new, 1),
+        (r'trackman-mcp\[login\]>=%s' % re.escape(cur), 'trackman-mcp[login]>=%s' % new, 1),
     ]),
 ]
 for path, pairs in edits:

@@ -27,19 +27,19 @@ See [`CLAUDE.md`](./CLAUDE.md) for the full architecture and auth/secret rules.
 Pick the path for how you use Claude. Each takes about two minutes, then do the
 one-time [Authentication](#authentication-one-time) step.
 
-### 🖥️ Claude Desktop — one-click (recommended)
+### 🖥️ Claude Desktop — one-click (recommended, no terminal)
 
 1. **Download [`trackman-golf.mcpb`](https://github.com/bjornj12/trackman-mcp-client/releases/latest/download/trackman-golf.mcpb)** (from the [latest release](https://github.com/bjornj12/trackman-mcp-client/releases/latest)).
-2. Open **Claude Desktop → Settings → Extensions** and drag the file in (or just
-   double-click the downloaded `.mcpb`). Click **Install**.
-3. In the install dialog you can paste a Trackman token now, or leave it blank
-   and sign in via the terminal once — see [Authentication](#authentication-one-time).
+2. Open **Claude Desktop → Settings → Extensions**, drag the file in (or
+   double-click it), and click **Install**. Leave the token field **blank**.
+3. In a chat, say **"log in to Trackman"** → a **browser window opens** → sign in
+   once with your Trackman email + password. That's it.
 4. Ask Claude: *"What's my Trackman handicap?"*
 
-Claude Desktop runs everything for you — it manages Python and dependencies via
-`uv`, so there's **nothing to install** and no config file to edit. (You may see
-a note that the extension is unsigned / from outside the directory — that's
-expected for one installed from a file.)
+Nothing to install and no config to edit — Claude Desktop runs everything and
+opens the sign-in browser for you. (First sign-in may take a moment if it needs
+to fetch a browser. You may also see an "unsigned extension" note — expected for
+one installed from a file.)
 
 ### ⌨️ Claude Code — plugin (server **and** coaching skills)
 
@@ -70,42 +70,33 @@ Add this to your client's MCP config:
 
 ## Authentication (one-time)
 
-However you installed it, the server needs a token for **your** Trackman account.
-Trackman has no public login API, so you capture a token from a real signed-in
-session once; it's then cached locally and can refresh itself. Your password is
-never seen or stored by the tool, and nothing leaves your machine.
+The server needs to sign in to **your** Trackman account. Trackman has no public
+login API, so it captures a token from a real signed-in browser session once;
+it's then cached locally and refreshes itself. Your password is never seen or
+stored by the tool, and nothing leaves your machine.
 
-### Recommended — sign in once (stays fresh on its own)
+### Easiest — just ask Claude to log in (Claude Desktop / Claude Code)
+
+Say **"log in to Trackman."** A browser window opens (an isolated profile, not
+your normal Chrome); sign in once. The token caches at `~/.trackman-mcp/token.json`
+(mode `0600`) and the MCP uses it automatically from then on. No terminal, no
+token to copy — the extension fetches a browser itself if you don't have one.
+
+### Terminal alternative (CLI users)
 
 ```bash
 uv tool install "trackman-mcp[login]"
-trackman-mcp login            # opens a browser; sign in with your Trackman email + password
+trackman-mcp login              # opens a browser; sign in once
+trackman-mcp login --headless   # silent refresh later (tokens last ~7 days)
+scripts/install-refresh-schedule.sh   # optional: auto-refresh twice weekly
 ```
 
-This caches the token at `~/.trackman-mcp/token.json` (mode `0600`) — **every**
-install (Desktop, Code, CLI) reads it. Keep it fresh automatically (tokens last
-~7 days):
+### Advanced — paste a token
 
-```bash
-scripts/install-refresh-schedule.sh     # twice-weekly headless refresh (macOS launchd / Linux cron)
-# …or manually any time:
-trackman-mcp login --headless
-```
-
-No Google Chrome? The flow falls back to Playwright's bundled Chromium — run
-`playwright install chromium` once. Windows: schedule `scripts/refresh-token.sh`
-via Task Scheduler.
-
-### No-terminal alternative — paste a token
-
-`portal.trackmangolf.com` → DevTools → **Network** → click a `graphql` request →
-copy the `Authorization: Bearer …` value, then:
-
-- **Desktop extension:** paste it into the **Trackman token** field of the install dialog.
-- **Manual config:** add `"env": { "TRACKMAN_TOKEN": "eyJ…" }` to the server entry.
-
-Heads-up: tokens expire after **~7 days**, so you'll re-paste weekly — the
-sign-in-once path above avoids that.
+`portal.trackmangolf.com` → DevTools → **Network** → a `graphql` request → copy
+the `Authorization: Bearer …` value → paste into the extension's **Trackman
+token** field (or set `TRACKMAN_TOKEN`). Tokens expire after ~7 days, so the
+sign-in flows above are easier.
 
 ### Verify it worked
 
