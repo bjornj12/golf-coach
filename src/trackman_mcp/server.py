@@ -1,11 +1,12 @@
 """Trackman Golf MCP server (FastMCP).
 
-Exposes the user's Trackman golf data as MCP tools. The server ONLY fetches and
-returns raw data — coaching/analysis lives in the Claude skills. See CLAUDE.md.
+Exposes the user's Trackman golf data as MCP tools, and serves the coaching
+skills as MCP prompts. The server ONLY fetches/returns raw data and runs the
+deterministic analytics — coaching *judgment* lives in the skills (now delivered
+as prompts). See CLAUDE.md.
 
 Run:  trackman-mcp           (stdio transport)
-Auth: set TRACKMAN_TOKEN to a Bearer access token captured from an authenticated
-      portal session (see docs/trackman-api.md).
+Auth: run `trackman-mcp login` (browser) or set TRACKMAN_TOKEN. See README.
 """
 
 from __future__ import annotations
@@ -25,11 +26,15 @@ mcp = FastMCP(
         "Fetches the signed-in user's Trackman Golf statistics: profile and "
         "handicap, practice/course sessions, scorecards, shot-level launch "
         "metrics, and club gapping. Returns raw data only — interpret it with "
-        "the golf coaching skills. Call `authenticate` first to confirm the "
-        "token works."
+        "the coaching prompts this server provides. Call `auth` (action='status') "
+        "first to confirm the token works."
     ),
 )
 
+# Tool annotation presets (readOnly, idempotent, openWorld).
+_RO_API = {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True}
+_RO_LOCAL = {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False}
+_WRITE_API = {"readOnlyHint": False, "idempotentHint": False, "openWorldHint": True}
 
 # Seconds to wait for a silent refresh before giving up (dead session fails fast).
 SILENT_REFRESH_TIMEOUT = 30.0
@@ -69,21 +74,18 @@ async def _run(
         raise
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
-async def authenticate() -> dict[str, Any]:
-    """Verify the configured Trackman token and report who you're signed in as.
+# --------------------------------------------------------------------------- #
+# Auth
+# --------------------------------------------------------------------------- #
 
-    Does not perform a password login (the portal client is server-side only).
-    It validates the Bearer token in TRACKMAN_TOKEN against the OIDC userinfo
-    endpoint. If this fails, re-capture the token from an authenticated portal
-    session.
-    """
+
+async def _auth_status() -> dict[str, Any]:
     config = Config.from_env()
     if not config.has_token:
         return {
             "authenticated": False,
             "reason": "No Trackman token. You're not signed in.",
-            "how_to_fix": "Use the `login` tool to sign in (it opens a browser).",
+            "how_to_fix": "Call auth(action='login'), or run `trackman-mcp login`.",
         }
     try:
         async with TrackmanClient(config) as client:
@@ -92,9 +94,9 @@ async def authenticate() -> dict[str, Any]:
         return {
             "authenticated": False,
             "reason": "Your Trackman session has expired.",
-            "how_to_fix": "Use the `login` tool to sign in again.",
+            "how_to_fix": "Call auth(action='login') to sign in again.",
         }
-    # Return identity claims only; never echo the token.
+    # Identity claims only; never echo the token.
     return {
         "authenticated": True,
         "subject": info.get("sub"),
@@ -103,17 +105,7 @@ async def authenticate() -> dict[str, Any]:
     }
 
 
-@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": False, "openWorldHint": True})
-async def login(open_browser: bool = True) -> dict[str, Any]:
-    """Sign in to Trackman — the easy way to (re)authenticate when expired.
-
-    Tries a **silent** refresh first (using the saved browser session — no window,
-    instant if the session is still valid). If the session has expired and
-    `open_browser` is true, it **opens a browser window** for you to sign in once;
-    the new token is then captured and cached automatically.
-
-    Returns who you're signed in as, or a clear message if login couldn't complete.
-    """
+async def _auth_login(open_browser: bool) -> dict[str, Any]:
     from .login import TrackmanLoginError, capture_token
 
     # 1) Silent refresh (fast; works while the saved session is valid).
@@ -125,7 +117,7 @@ async def login(open_browser: bool = True) -> dict[str, Any]:
             return {
                 "success": False,
                 "message": "Saved session expired and open_browser is false. "
-                           "Call login with open_browser=true, or run "
+                           "Call auth(action='login', open_browser=true), or run "
                            "`trackman-mcp login` in a terminal.",
             }
         try:
@@ -139,12 +131,38 @@ async def login(open_browser: bool = True) -> dict[str, Any]:
             info = await client.whoami()
     except TrackmanAuthError:
         return {"success": False,
-                "message": "Captured a token but it was rejected — try login again."}
+                "message": "Captured a token but it was rejected — try again."}
     return {"success": True, "name": info.get("name") or info.get("subject"),
             "message": "Signed in. The MCP will use this automatically."}
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
+@mcp.tool(annotations=_WRITE_API)
+async def auth(
+    action: Literal["status", "login"] = "status",
+    open_browser: bool = True,
+) -> dict[str, Any]:
+    """Check or (re)establish your Trackman sign-in.
+
+    Actions:
+    - `status` (default): report whether the current token works and who you're
+      signed in as. Use this first; it never opens anything.
+    - `login`: (re)authenticate. Tries a silent refresh of the saved browser
+      session first; if that's expired and `open_browser` is true, opens a window
+      to sign in once. Use when `status` says expired/not signed in.
+
+    Never echoes the token.
+    """
+    if action == "login":
+        return await _auth_login(open_browser)
+    return await _auth_status()
+
+
+# --------------------------------------------------------------------------- #
+# Data reads (discrete, read-only)
+# --------------------------------------------------------------------------- #
+
+
+@mcp.tool(annotations=_RO_API)
 async def get_profile() -> dict[str, Any]:
     """Get the player's profile and current handicap.
 
@@ -155,7 +173,7 @@ async def get_profile() -> dict[str, Any]:
     return data.get("me", {})
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
+@mcp.tool(annotations=_RO_API)
 async def get_handicap(skip: int = 0, take: int = 20, only_in_avg: bool = False) -> dict[str, Any]:
     """Get handicap history: per-round differentials and how the index moved.
 
@@ -171,7 +189,7 @@ async def get_handicap(skip: int = 0, take: int = 20, only_in_avg: bool = False)
     return data.get("me", {}).get("hcp", {})
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
+@mcp.tool(annotations=_RO_API)
 async def list_sessions(
     skip: int = 0,
     take: int = 25,
@@ -205,11 +223,12 @@ async def list_sessions(
     return data.get("me", {}).get("activities", {})
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
+@mcp.tool(annotations=_RO_API)
 async def get_session(activity_id: str) -> dict[str, Any]:
-    """Get one activity in full by its id.
+    """Get one activity in full by its id — including shot-level launch metrics.
 
-    For RANGE_PRACTICE: every stroke with its launch-monitor measurement.
+    For RANGE_PRACTICE: every stroke with its measurement (ball/club speed,
+    smash, launch, spin, carry, side, curve, landing angle, …).
     For COURSE_PLAY: the scorecard with per-hole scores and per-shot metrics.
     """
     data = await _run(queries.GET_SESSION, {"id": activity_id})
@@ -219,7 +238,7 @@ async def get_session(activity_id: str) -> dict[str, Any]:
     return node
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
+@mcp.tool(annotations=_RO_API)
 async def get_course_rounds(
     skip: int = 0, take: int = 20, completed: bool | None = True
 ) -> dict[str, Any]:
@@ -238,7 +257,7 @@ async def get_course_rounds(
     return {"scorecards": data.get("me", {}).get("scorecards", [])}
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
+@mcp.tool(annotations=_RO_API)
 async def get_club_stats(include_retired: bool = False) -> dict[str, Any]:
     """Get per-club gapping and dispersion ("My Bag" / Find My Distance).
 
@@ -249,22 +268,7 @@ async def get_club_stats(include_retired: bool = False) -> dict[str, Any]:
     return data.get("me", {}).get("equipment", {})
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
-async def get_shot_data(activity_id: str) -> dict[str, Any]:
-    """Get shot-level launch-monitor metrics for one activity.
-
-    Convenience wrapper over `get_session` that returns the same full detail
-    (strokes/shots with ball speed, club speed, smash, launch, spin, carry,
-    side, curve, landing angle, …). Pass a RANGE_PRACTICE or COURSE_PLAY id.
-    """
-    data = await _run(queries.GET_SESSION, {"id": activity_id})
-    node = data.get("node")
-    if not node:
-        raise ValueError(f"No activity found for id {activity_id!r}.")
-    return node
-
-
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
+@mcp.tool(annotations=_RO_API)
 async def get_activity_summary(
     time_from: str | None = None,
     time_to: str | None = None,
@@ -279,37 +283,12 @@ async def get_activity_summary(
     return data.get("me", {}).get("activitySummary", {})
 
 
-async def _login_cmd(headless: bool) -> int:
-    """Run the browser login, cache the token, and confirm identity."""
-    from .login import TrackmanLoginError, capture_token
-
-    mode = "headless" if headless else "a browser window"
-    print(f"Opening Trackman login ({mode})… sign in if prompted.")
-    try:
-        await capture_token(headless=headless)
-    except TrackmanLoginError as exc:
-        print(f"Login failed: {exc}")
-        return 1
-
-    # Confirm the captured token works (and show who it belongs to).
-    config = Config.from_env()
-    async with TrackmanClient(config) as client:
-        info = await client.whoami()
-    print(f"✓ Logged in as {info.get('name') or info.get('sub')}. "
-          "Token cached — the MCP will use it automatically.")
-    return 0
+# --------------------------------------------------------------------------- #
+# Session analysis (local store, deterministic analytics)
+# --------------------------------------------------------------------------- #
 
 
-@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": False, "openWorldHint": True})
-async def analyze_and_store_session(activity_id: str) -> dict[str, Any]:
-    """Analyze one session, store the analysis locally, and return it.
-
-    Fetches the session detail, runs the deterministic analyzer (classify
-    warm-up vs serious practice vs game; per-session metrics; course difficulty;
-    normalization against previously stored sessions; used vs available clubs),
-    saves the result to the local store (kept to the last 30, latest first), and
-    returns the stored record. Intended to be driven by the analyzer skill.
-    """
+async def _analysis_analyze(activity_id: str) -> dict[str, Any]:
     from . import analysis, session_store
 
     node = (await _run(queries.GET_SESSION, {"id": activity_id})).get("node") or {}
@@ -339,13 +318,7 @@ async def analyze_and_store_session(activity_id: str) -> dict[str, Any]:
     return record
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False})
-async def list_session_analyses() -> dict[str, Any]:
-    """List stored session analyses, most recent first (max 30).
-
-    Returns a lightweight index (id, time, kind, category, seriousness, summary)
-    plus the total count. Use `get_session_analysis` for a full record.
-    """
+def _analysis_list() -> dict[str, Any]:
     from . import session_store
 
     items = session_store.list_analyses()
@@ -364,97 +337,42 @@ async def list_session_analyses() -> dict[str, Any]:
             "items": index}
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False})
-async def get_session_analysis(activity_id: str) -> dict[str, Any]:
-    """Get one full stored session-analysis record by id."""
-    from . import session_store
-
-    return session_store.get_analysis(activity_id) or {
-        "error": f"no stored analysis for {activity_id}"
-    }
-
-
-@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": False, "openWorldHint": False})
-async def save_training_plan(plan: dict[str, Any]) -> dict[str, Any]:
-    """Save a prescribed training plan so the coach remembers it later.
-
-    The plan is a structured dict (the coach builds it), e.g.:
-    {
-      "title": "<short plan name>",
-      "focus": ["<gap it targets>"],
-      "diagnosis": "<one line: the numbers behind it>",
-      "blocks": [{"name": "<drill>", "club": "<club>", "reps": N,
-                  "detail": "…", "link": "https://…", "goal": "<measurable goal>"}],
-      "targets": {"<metric>": "<target range>"}
-    }
-    Adds it to the pending queue. Returns the stored plan (with id). Plans are
-    capped at the most recent 50.
-    """
-    from . import training_store
-
-    if not isinstance(plan, dict) or not plan:
-        raise ValueError("plan must be a non-empty object describing the session.")
-    return training_store.save_plan(plan)
-
-
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False})
-async def get_next_training() -> dict[str, Any]:
-    """Get the next pending training session — the answer to 'what's today's training?'.
-
-    Returns the oldest pending plan, or a note if there are none. Does not mark
-    it done; call `mark_training_done` once the session is completed.
-    """
-    from . import training_store
-
-    plan = training_store.next_pending()
-    if not plan:
-        return {"has_plan": False,
-                "message": "No pending training plan. Ask the coach for one."}
-    pending = training_store.list_plans(status="pending")
-    return {"has_plan": True, "plan": plan, "pending_count": len(pending)}
-
-
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False})
-async def list_training_plans(
-    status: Literal["pending", "done"] | None = None,
+@mcp.tool(annotations=_WRITE_API)
+async def session_analysis(
+    action: Literal["analyze", "get", "list"],
+    activity_id: str | None = None,
 ) -> dict[str, Any]:
-    """List stored training plans (oldest→newest). Optional status filter
-    ('pending' or 'done')."""
-    from . import training_store
+    """Per-session analysis (deterministic classification + metrics, stored locally).
 
-    plans = training_store.list_plans(status=status)
-    return {"count": len(plans), "plans": plans}
+    Actions:
+    - `analyze` (needs `activity_id`): fetch a session, classify it (warm-up vs
+      serious practice vs game), compute metrics, normalize vs prior stored
+      sessions, store the record (last 30 kept), and return it.
+    - `get` (needs `activity_id`): return one stored analysis record.
+    - `list`: return the index of stored analyses (most recent first).
 
-
-@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": True, "openWorldHint": False})
-async def mark_training_done(
-    plan_id: str, result_session_id: str | None = None
-) -> dict[str, Any]:
-    """Mark a training plan completed (optionally link the session that did it).
-
-    After this, `get_next_training` returns the following pending plan.
+    Drive this with the `trackman-session-analyzer` prompt.
     """
-    from . import training_store
+    if action == "analyze":
+        if not activity_id:
+            raise ValueError("session_analysis(action='analyze') needs an activity_id.")
+        return await _analysis_analyze(activity_id)
+    if action == "get":
+        if not activity_id:
+            raise ValueError("session_analysis(action='get') needs an activity_id.")
+        from . import session_store
+        return session_store.get_analysis(activity_id) or {
+            "error": f"no stored analysis for {activity_id}"
+        }
+    return _analysis_list()
 
-    updated = training_store.mark_done(plan_id, result_session_id=result_session_id)
-    return updated or {"error": f"no training plan with id {plan_id}"}
+
+# --------------------------------------------------------------------------- #
+# Training plans (the coach's memory)
+# --------------------------------------------------------------------------- #
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True})
-async def verify_training_progress(
-    plan_id: str, activity_id: str | None = None
-) -> dict[str, Any]:
-    """Grade a recent session against a saved plan's target metrics.
-
-    Reads the plan's `target_specs` (structured targets, e.g. driver clubPath
-    between -1 and +2), finds the session to check (the given `activity_id`, or
-    else the most recent session that has shots for the plan's target club),
-    pulls that session's real shot measurements, and reports each target's
-    session-mean value vs the target and whether it's met.
-
-    Returns per-target results, `all_met`, and a recommendation (e.g. mark the
-    plan done once every target is met). Does not auto-complete the plan.
-    """
+async def _training_verify(plan_id: str, activity_id: str | None) -> dict[str, Any]:
     from . import analysis, training_store
 
     plan = training_store.get_plan(plan_id)
@@ -519,31 +437,127 @@ async def verify_training_progress(
         "all_met": verdict["all_met"],
         "has_data": verdict["has_data"],
         "recommendation": (
-            "All targets met — call mark_training_done to graduate this plan."
+            "All targets met — call training_plan(action='done') to graduate it."
             if verdict["all_met"] else
             "Not all targets met yet — keep this as the current focus."
         ),
     }
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False})
+@mcp.tool(annotations=_WRITE_API)
+async def training_plan(
+    action: Literal["save", "next", "list", "done", "verify"],
+    plan: dict[str, Any] | None = None,
+    plan_id: str | None = None,
+    status: Literal["pending", "done"] | None = None,
+    activity_id: str | None = None,
+    result_session_id: str | None = None,
+) -> dict[str, Any]:
+    """The coach's memory: save prescribed practice plans and recall/grade them.
+
+    Actions:
+    - `save` (needs `plan`): persist a prescribed plan to the pending queue. The
+      `plan` is a structured dict — title, focus, diagnosis, blocks
+      [{name, club, reps, detail, link, goal}], and optional `target_specs`
+      (machine-readable targets, e.g. {metric:'clubPath', club:'DRIVER',
+      op:'between', low:-1, high:2}) used by `verify`. Returns the stored plan
+      (with id). Capped at the most recent 50.
+    - `next`: return the next pending plan — the answer to "what's today's training?".
+    - `list` (optional `status`='pending'|'done'): list plans, oldest→newest.
+    - `done` (needs `plan_id`, optional `result_session_id`): mark a plan complete.
+    - `verify` (needs `plan_id`, optional `activity_id`): grade a recent session's
+      real shot metrics against the plan's `target_specs`; returns per-target
+      session-mean vs target, `all_met`, and a recommendation.
+    """
+    from . import training_store
+
+    if action == "save":
+        if not isinstance(plan, dict) or not plan:
+            raise ValueError("training_plan(action='save') needs a non-empty `plan` object.")
+        return training_store.save_plan(plan)
+
+    if action == "next":
+        nxt = training_store.next_pending()
+        if not nxt:
+            return {"has_plan": False,
+                    "message": "No pending training plan. Ask the coach for one."}
+        pending = training_store.list_plans(status="pending")
+        return {"has_plan": True, "plan": nxt, "pending_count": len(pending)}
+
+    if action == "list":
+        plans = training_store.list_plans(status=status)
+        return {"count": len(plans), "plans": plans}
+
+    if action == "done":
+        if not plan_id:
+            raise ValueError("training_plan(action='done') needs a `plan_id`.")
+        updated = training_store.mark_done(plan_id, result_session_id=result_session_id)
+        return updated or {"error": f"no training plan with id {plan_id}"}
+
+    # verify
+    if not plan_id:
+        raise ValueError("training_plan(action='verify') needs a `plan_id`.")
+    return await _training_verify(plan_id, activity_id)
+
+
+# --------------------------------------------------------------------------- #
+# Visualization
+# --------------------------------------------------------------------------- #
+
+
+@mcp.tool(annotations=_RO_LOCAL)
 async def build_visualization(data: dict[str, Any]) -> dict[str, Any]:
     """Render a coaching diagnosis into a self-contained animated HTML page.
 
     Returns `{html}` — one standalone document (inline canvas/JS, no network, no
-    external resources) ready to drop straight into a Claude **HTML artifact** in
-    Claude Desktop / claude.ai, or to write to a file in Claude Code.
+    external resources) ready to drop straight into a Claude **HTML artifact**.
 
     `data` shape (all optional; the viz adapts): {title, subtitle, diagnosis,
     handedness "RH"|"LH", shots:[{launchDirection,carry,totalSide,curve}],
     swing:{clubPath,faceAngle,faceToPath}, targets:[{label,value,target,low,high,
-    met}], blocks:[{name,detail,goal,link}]}. See the trackman-visualizer skill.
+    met}], blocks:[{name,detail,goal,link}]}. See the trackman-visualizer prompt.
     """
     from .visualize import build_html
 
     html = build_html(data)
     return {"html": html, "bytes": len(html.encode()),
             "render_as": "text/html artifact"}
+
+
+# --------------------------------------------------------------------------- #
+# Skill prompts
+# --------------------------------------------------------------------------- #
+
+from .prompts import register_skill_prompts  # noqa: E402
+
+register_skill_prompts(mcp)
+
+
+# --------------------------------------------------------------------------- #
+# CLI
+# --------------------------------------------------------------------------- #
+
+
+async def _login_cmd(headless: bool) -> int:
+    """Run the browser login, cache the token, and confirm identity."""
+    import sys
+
+    from .login import TrackmanLoginError, capture_token
+
+    mode = "headless" if headless else "a browser window"
+    print(f"Opening Trackman login ({mode})… sign in if prompted.", file=sys.stderr)
+    try:
+        await capture_token(headless=headless)
+    except TrackmanLoginError as exc:
+        print(f"Login failed: {exc}", file=sys.stderr)
+        return 1
+
+    config = Config.from_env()
+    async with TrackmanClient(config) as client:
+        info = await client.whoami()
+    print(f"✓ Logged in as {info.get('name') or info.get('sub')}. "
+          "Token cached — the MCP will use it automatically.", file=sys.stderr)
+    return 0
 
 
 def main() -> None:

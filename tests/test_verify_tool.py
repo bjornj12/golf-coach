@@ -1,4 +1,4 @@
-"""Server-level tests for the verify_training_progress orchestration.
+"""Server-level tests for the training_plan(action="verify") orchestration.
 
 Covers the no-specs guard, the explicit-activity path, the auto-select loop with
 the clubs pre-filter (no wasted per-session fetches), and the no-data window
@@ -42,7 +42,7 @@ DRIVER_SPEC = [{"metric": "clubPath", "club": "DRIVER", "op": "between",
 
 async def test_verify_requires_target_specs():
     plan = training_store.save_plan({"title": "no specs"})  # no target_specs
-    out = await server.verify_training_progress(plan["id"])
+    out = await server.training_plan(action="verify", plan_id=plan["id"])
     assert "error" in out
     assert "target_specs" in out["error"]
 
@@ -56,11 +56,11 @@ async def test_verify_explicit_activity_grades_that_session(route_run):
                          "strokes": _driver_strokes([0.0, 1.0, 2.0])}}  # mean 1.0 -> met
 
     calls = route_run(handler)
-    out = await server.verify_training_progress(plan["id"], activity_id="act-1")
+    out = await server.training_plan(action="verify", plan_id=plan["id"], activity_id="act-1")
     assert out["checked_session"] == "act-1"
     assert out["has_data"] is True
     assert out["all_met"] is True
-    assert "mark_training_done" in out["recommendation"]
+    assert "done" in out["recommendation"]  # suggests training_plan(action='done')
     assert len(calls) == 1  # no LIST_SESSIONS when an id is given
 
 
@@ -81,7 +81,7 @@ async def test_verify_autoselect_prefilters_by_clubs(route_run):
                          "strokes": _driver_strokes([0.0, 1.0])}}
 
     route_run(handler)
-    out = await server.verify_training_progress(plan["id"])
+    out = await server.training_plan(action="verify", plan_id=plan["id"])
     assert out["checked_session"] == "a2"
     assert out["has_data"] is True
     # a1 was skipped via the list-clubs pre-filter: no measurement fetch for it.
@@ -100,6 +100,6 @@ async def test_verify_no_matching_session_reports_window(route_run):
         raise AssertionError("should not fetch measurements when nothing matches")
 
     route_run(handler)
-    out = await server.verify_training_progress(plan["id"])
+    out = await server.training_plan(action="verify", plan_id=plan["id"])
     assert out["has_data"] is False
     assert "20" in out["message"]  # the scan window is surfaced

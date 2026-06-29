@@ -81,11 +81,11 @@ no good match — never invent URLs):
 
 ## Step 4 — Remember it (save the plan)
 
-After presenting the plan, **save it** by calling `save_training_plan` with a
+After presenting the plan, **save it** by calling `training_plan(action="save")` with a
 structured plan so it can be recalled later:
 
 ```
-save_training_plan({
+training_plan(action="save", plan={
   "title": "<short name, e.g. 'Driver slice fix — out-to-in path'>",
   "focus": ["<gap(s) it targets>"],
   "diagnosis": "<one-line: the numbers behind it>",
@@ -106,20 +106,20 @@ save_training_plan({
 Always include **`target_specs`** when the targets are measurable shot metrics —
 that's what lets the coach grade progress later. Tell the user it's saved and they
 can ask "what's today's training?" next time. If the new plan supersedes an old
-pending one, `mark_training_done` the old one (or leave it queued).
+pending one, `training_plan(action="done")` the old one (or leave it queued).
 
 ## Recall — "what's today's training?"
 
-1. Call `get_next_training`. If `has_plan` is false, there's no saved plan —
+1. Call `training_plan(action="next")`. If `has_plan` is false, there's no saved plan —
    offer to run a fresh diagnosis (Prescribe mode).
 2. Present the saved plan clearly: title, the blocks (club, reps, target, drill
    link), and the Trackman targets to hit.
-3. **Auto-grade progress:** call `verify_training_progress(plan_id)`. It reads
+3. **Auto-grade progress:** call `training_plan(action="verify", plan_id)`. It reads
    your most recent session with shots for the plan's target club and grades each
    `target_spec` (session-mean value vs target, met / not yet). Show the result as
    a small table (metric, your average, target, status).
    - If `all_met` is true → congratulate the user and call
-     `mark_training_done(plan_id, result_session_id=<checked_session>)` so the next
+     `training_plan(action="done", plan_id, result_session_id=<checked_session>)` so the next
      plan becomes current; then present that next plan.
    - If not → keep it as today's focus and point out exactly which metric is still
      off and by how much (this is what to chase today).

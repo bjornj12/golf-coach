@@ -116,32 +116,40 @@ replies with your name (never the token).
 
 All tools return **raw data only**; the skills interpret it.
 
-**Data (read-only):** `authenticate` · `get_profile` · `get_handicap` ·
-`list_sessions` · `get_session` · `get_course_rounds` · `get_club_stats` ·
-`get_shot_data` · `get_activity_summary`
+**11 tools.** The CRUD clusters take an `action` (so the agent isn't choosing
+among many near-identical tools); the data reads stay discrete.
 
-**Auth:** `login`
+**Auth:** `auth(action: status | login)`
 
-**Session analysis (local store, deterministic):** `analyze_and_store_session` ·
-`list_session_analyses` · `get_session_analysis`
+**Data (read-only):** `get_profile` · `get_handicap` · `list_sessions` ·
+`get_session` (full detail incl. shot-level metrics) · `get_course_rounds` ·
+`get_club_stats` · `get_activity_summary`
 
-**Training-plan memory:** `save_training_plan` · `get_next_training` ·
-`list_training_plans` · `mark_training_done` · `verify_training_progress`
+**Session analysis (local, deterministic):** `session_analysis(action: analyze | get | list)`
+
+**Training-plan memory:** `training_plan(action: save | next | list | done | verify)`
 
 **Visualization:** `build_visualization` (self-contained animated HTML artifact)
 
 See [`CLAUDE.md`](./CLAUDE.md) for the full table and backing GraphQL.
 
-## Skills
+## Skills (coaching brain)
 
-Bundled under [`skills/`](./skills) (installed automatically with the plugin):
+The skills under [`skills/`](./skills) are delivered two ways:
 
-- `trackman-api-discovery` — reverse-engineer the portal's API (Phase 0)
-- `trackman-stats-analysis` — diagnose weaknesses from the data
-- `golf-coaching` — turn the diagnosis into an actionable practice plan
-- `drill-library` — curated drills + vetted YouTube links, plus live search
-- `trackman-session-analyzer` — ingest + normalize recent sessions (runs forked)
-- `trackman-visualizer` — animate a diagnosis as an HTML artifact
+- **Claude Code:** installed automatically with the plugin.
+- **Any MCP client (incl. Claude Desktop):** the server **serves them as MCP
+  prompts**, so they show up in your client's prompt picker — no separate install.
+
+| Skill | What it does |
+|-------|--------------|
+| `trackman-stats-analysis` | Diagnose weaknesses from the data |
+| `golf-coaching` | Turn the diagnosis into an actionable practice plan |
+| `drill-library` | Curated drills + vetted YouTube links, plus live search |
+| `trackman-session-analyzer` | Ingest + normalize recent sessions |
+| `trackman-visualizer` | Animate a diagnosis as an HTML artifact |
+
+(`trackman-api-discovery` is a project/dev skill and isn't served as a prompt.)
 
 ## Development
 

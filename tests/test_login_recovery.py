@@ -62,16 +62,16 @@ async def test_run_raises_when_refresh_fails(monkeypatch):
         await server._run("query { __typename }")
 
 
-async def test_login_tool_reports_failure_without_browser(monkeypatch):
+async def test_login_action_reports_failure_without_browser(monkeypatch):
     async def boom(*a, **k):
         raise login_mod.TrackmanLoginError("session expired")
     monkeypatch.setattr(login_mod, "capture_token", boom)
-    res = await server.login(open_browser=False)
+    res = await server.auth(action="login", open_browser=False)
     assert res["success"] is False
     assert "expired" in res["message"].lower() or "terminal" in res["message"].lower()
 
 
-async def test_login_tool_success_path(monkeypatch):
+async def test_login_action_success_path(monkeypatch):
     # capture succeeds silently; whoami returns identity via mocked transport.
     async def ok(*a, **k):
         return "tok"
@@ -82,6 +82,6 @@ async def test_login_tool_success_path(monkeypatch):
         return {"name": "Pat Golfer", "sub": "s1"}
     monkeypatch.setattr("trackman_mcp.client.TrackmanClient.whoami", fake_whoami)
 
-    res = await server.login()
+    res = await server.auth(action="login")
     assert res["success"] is True
     assert res["name"] == "Pat Golfer"

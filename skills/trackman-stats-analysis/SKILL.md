@@ -11,14 +11,14 @@ drills — it hands a prioritized weakness list to the `golf-coaching` skill.
 
 ## Inputs
 
-Call the MCP tools (run `authenticate` first if needed):
+Call the MCP tools (run `auth` first if needed):
 - `get_profile` → current handicap.
 - `list_sessions` → recent practice + rounds (default: last 60–90 days).
 - `get_course_rounds` → scorecards for scoring analysis.
 - `get_club_stats` → per-club gapping and dispersion.
-- `get_shot_data` / `get_session` → shot-level detail where you need it.
+- `get_session` / `get_session` → shot-level detail where you need it.
 
-If a tool errors with auth expired, re-run `authenticate`. If the MCP isn't
+If a tool errors with auth expired, re-run `auth`. If the MCP isn't
 built yet (Phase 0/1 incomplete), say so and stop — don't invent numbers.
 
 ## What to analyze
