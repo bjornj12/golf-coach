@@ -26,10 +26,11 @@ or can't get to a range.
    and what it fixes. Daily beats weekly; go slow and over-correct (neutral will
    feel like a hook at first).
 
-4. **Show it — one drill at a time.** Animate each drill's intended motion (red
-   current move → green target move) via the `trackman-visualizer` prompt, one
-   per exercise, not all at once. Offer to slow it down or change camera if a
-   drill isn't clicking. Lead with the visual; don't make them ask.
+4. **Show it — one drill at a time, with a video.** Animate each drill's intended
+   motion (red current move → green target move) via the `trackman-visualizer`
+   prompt, one per exercise, **and give each drill a verified YouTube link** (from
+   the `drill-library` prompt, or live-search + verify one — never invent URLs).
+   Animation + video for every drill; lead with the visual, don't make them ask.
 
 5. **Save it so it sticks.** Persist the routine with `training_plan(action="save")`
    (title like "At-home no-ball slice routine", the drills as blocks, the fault

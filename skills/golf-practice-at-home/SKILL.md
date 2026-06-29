@@ -27,9 +27,10 @@ tools supply the data; this skill turns it into a home routine.
    (transition → path → face), reps each, one *feel* per drill, what it fixes.
    Daily beats weekly; go slow and over-correct (neutral feels like a hook first).
 
-4. **Show it — one drill at a time.** Animate each drill (red current → green
-   target) via the `trackman-visualizer` skill, one per exercise. Offer to slow
-   it down or change camera if a drill isn't clicking. Lead with the visual.
+4. **Show it — one drill at a time, with a video.** Animate each drill (red
+   current → green target) via the `trackman-visualizer` skill, one per exercise,
+   **and give each a verified YouTube link** (from `drill-library`, or
+   live-search + verify — never invent URLs). Animation + video for every drill.
 
 5. **Save it.** Persist with `training_plan(action="save")` (title, drills as
    blocks, fault in `diagnosis`, `target_specs` from the swing plan if

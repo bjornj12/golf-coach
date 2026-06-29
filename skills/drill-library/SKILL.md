@@ -9,6 +9,10 @@ A maintained library of golf drills mapped to weaknesses, each with a vetted
 YouTube link, **plus** a procedure for finding fresh videos when the library
 doesn't have a good match. Used by `golf-coaching` to fill practice blocks.
 
+**Every drill handed to the user ships with a video link — no exceptions.** If
+the table has no link, live-search and verify one first; never give a drill
+without a video, and never invent a URL.
+
 ## How to use
 
 1. Identify the weakness category from the diagnosis (see categories below).
