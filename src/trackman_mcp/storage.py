@@ -44,9 +44,16 @@ def write_secure(path: Path, text: str) -> None:
     the contents are never briefly world-readable.
     """
     directory = path.parent
+    # mkstemp already creates the file owner-only (0600) on POSIX.
     fd, tmp_name = tempfile.mkstemp(dir=str(directory), prefix=".tmp-", suffix=path.suffix)
     try:
-        os.fchmod(fd, 0o600)
+        # Tighten explicitly where supported; os.fchmod is Unix-only (Windows
+        # uses ACLs and has no POSIX modes — the file is still user-scoped there).
+        if hasattr(os, "fchmod"):
+            try:
+                os.fchmod(fd, 0o600)
+            except OSError:
+                pass
         with os.fdopen(fd, "w") as fh:
             fh.write(text)
             fh.flush()
