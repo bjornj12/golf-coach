@@ -1,0 +1,11 @@
+# Never ship build/venv/cache artifacts inside the bundle.
+.venv/
+venv/
+server/lib/
+server/venv/
+__pycache__/
+*.pyc
+.uv/
+.DS_Store
+*.mcpb
+uv.lock

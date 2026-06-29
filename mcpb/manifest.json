@@ -1,0 +1,45 @@
+{
+  "manifest_version": "0.4",
+  "name": "trackman-golf",
+  "display_name": "Trackman Golf",
+  "version": "0.1.0",
+  "description": "Your Trackman Golf stats as MCP tools — handicap, rounds, practice, shot data, club gapping.",
+  "long_description": "Connects to Trackman Golf with your own account and exposes your stats — course rounds, practice sessions, shot-level launch-monitor data, club gapping, and handicap — as MCP tools, so Claude can analyze your game and coach you. Runs locally; your data and token never leave your machine. Requires a Trackman account.",
+  "author": {
+    "name": "Bjorn Jonsson",
+    "email": "bjorn@avo.sh"
+  },
+  "homepage": "https://github.com/bjornj12/trackman-mcp-client",
+  "documentation": "https://github.com/bjornj12/trackman-mcp-client#readme",
+  "support": "https://github.com/bjornj12/trackman-mcp-client/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "uv",
+    "entry_point": "src/server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "src/server.py"],
+      "env": {
+        "TRACKMAN_TOKEN": "${user_config.trackman_token}"
+      }
+    }
+  },
+  "user_config": {
+    "trackman_token": {
+      "type": "string",
+      "title": "Trackman token (optional)",
+      "description": "Paste a Bearer token from an authenticated Trackman portal session. Leave blank if you've run `trackman-mcp login` in a terminal — the server then uses the cached token automatically. See the project README for both options.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.11"
+    }
+  },
+  "keywords": ["golf", "trackman", "coaching", "stats"],
+  "license": "MIT"
+}
