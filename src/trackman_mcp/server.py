@@ -524,6 +524,27 @@ async def build_visualization(data: dict[str, Any]) -> dict[str, Any]:
             "render_as": "text/html artifact"}
 
 
+@mcp.tool(annotations=_RO_LOCAL)
+async def setup() -> dict[str, Any]:
+    """One-call onboarding for the Trackman golf coach.
+
+    Returns everything needed to set the coach up in your client:
+    - `system_prompt`: paste into a Claude/ChatGPT **Project's** custom
+      instructions so every chat in it is the coach (with this MCP connected);
+    - `skills`: upload-ready `SKILL.md` files (Settings → Capabilities → Skills)
+      for always-on auto-activation;
+    - `instructions`: per-client steps (Claude Projects, Desktop Skills, ChatGPT,
+      Claude Code).
+
+    An MCP server can't create the Project or enable Skills itself — this hands
+    you the content + steps. In Claude Code, the assistant can write the files
+    for you directly from this kit. (Pairs with the `setup` prompt.)
+    """
+    from .onboarding import build_setup_kit
+
+    return build_setup_kit()
+
+
 # --------------------------------------------------------------------------- #
 # Skill prompts
 # --------------------------------------------------------------------------- #

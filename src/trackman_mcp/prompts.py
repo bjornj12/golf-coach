@@ -91,10 +91,41 @@ def _make_render(body: str):
     return render
 
 
+_SETUP_PROMPT_BODY = """\
+Set up the Trackman golf coach for this user. Call the `setup` tool to get the kit
+(an always-on coach `system_prompt`, the `skills`, and per-client `instructions`),
+then:
+
+- If you can write files here (e.g. Claude Code): create each skill at
+  `.claude/skills/<name>/SKILL.md` from `skills`, write `system_prompt` into
+  `CLAUDE.md`, and confirm what you created.
+- Otherwise (Claude Desktop / claude.ai / ChatGPT): show the `system_prompt` for
+  the user to paste into a new Project's custom instructions, and walk them
+  through the matching entry in `instructions` (plus the `skills` they can
+  optionally upload for auto-activation).
+
+Keep it to a short, actionable walkthrough — no raw JSON dumps.
+"""
+
+SETUP_PROMPT_NAME = "setup"
+SETUP_PROMPT_DESCRIPTION = (
+    "Set up the Trackman golf coach: get an always-on coach system prompt for a "
+    "Project, plus the installable skills and per-client steps (Claude Desktop, "
+    "claude.ai, ChatGPT, Claude Code)."
+)
+
+
 def register_skill_prompts(mcp) -> int:
-    """Register one (argument-less) MCP prompt per user-facing skill. Returns count."""
+    """Register the setup prompt + one (argument-less) prompt per skill. Returns count."""
     from fastmcp.prompts import Prompt
 
+    mcp.add_prompt(
+        Prompt.from_function(
+            _make_render(_SETUP_PROMPT_BODY),
+            name=SETUP_PROMPT_NAME,
+            description=SETUP_PROMPT_DESCRIPTION,
+        )
+    )
     skills = load_skills()
     for skill in skills:
         mcp.add_prompt(
@@ -102,4 +133,4 @@ def register_skill_prompts(mcp) -> int:
                 _make_render(skill.body), name=skill.name, description=skill.description
             )
         )
-    return len(skills)
+    return len(skills) + 1

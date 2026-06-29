@@ -32,9 +32,10 @@ def test_skill_body_is_stripped_of_front_matter():
 async def test_register_skill_prompts_registers_each():
     m = FastMCP(name="t")
     n = prompts.register_skill_prompts(m)
-    assert n == len(prompts.load_skills())
+    assert n == len(prompts.load_skills()) + 1  # skills + the `setup` prompt
     names = {p.name for p in await m.list_prompts()}
     assert USER_FACING <= names
+    assert "setup" in names
 
 
 def test_desktop_prompt_body_is_preferred():

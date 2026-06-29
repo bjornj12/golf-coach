@@ -116,8 +116,12 @@ replies with your name (never the token).
 
 All tools return **raw data only**; the skills interpret it.
 
-**11 tools.** The CRUD clusters take an `action` (so the agent isn't choosing
+**12 tools.** The CRUD clusters take an `action` (so the agent isn't choosing
 among many near-identical tools); the data reads stay discrete.
+
+**Setup:** `setup` — one call returns an always-on coach **system prompt** (for a
+Project), the **skills** as upload-ready files, and per-client steps. There's a
+matching `setup` prompt in the picker.
 
 **Auth:** `auth(action: status | login)`
 

@@ -82,9 +82,14 @@ All tools return **raw, structured data only**. No prose, no advice. Every tool
 calls the single GraphQL endpoint `POST https://api.trackmangolf.com/graphql`
 under the signed-in user's `me` root.
 
-The surface is **11 tools** (consolidated from an earlier 19). CRUD clusters use
-an `action` parameter so the model isn't choosing among many near-duplicate tools;
-the data reads stay discrete and well-named.
+The surface is **12 tools** (the 11 data/coaching tools below, plus `setup`).
+CRUD clusters use an `action` parameter so the model isn't choosing among many
+near-duplicate tools; the data reads stay discrete and well-named.
+
+`setup` is a one-call onboarding tool: it returns an always-on coach
+`system_prompt` (to paste into a Project), the coaching `skills` as upload-ready
+files, and per-client instructions. A matching `setup` MCP prompt drives it.
+(Onboarding content only — still no computed verdicts; see the boundary note.)
 
 | Tool | Backing (under `me`) | Returns |
 |------|----------------------|---------|
