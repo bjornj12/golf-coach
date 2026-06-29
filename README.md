@@ -41,6 +41,13 @@ opens the sign-in browser for you. (First sign-in may take a moment if it needs
 to fetch a browser. You may also see an "unsigned extension" note — expected for
 one installed from a file.)
 
+**Platforms:** macOS, Linux, and **Windows** — Claude Desktop runs the server via
+`uv` on all three, and the browser sign-in uses Playwright (cross-platform). One
+caveat on Windows: the local token/data files are protected by your Windows user
+profile (ACLs) rather than POSIX `0600` modes. The optional cron/launchd
+auto-refresh script is macOS/Linux only — on Windows use Task Scheduler, or just
+re-run the in-app "log in to Trackman" when the ~7-day token lapses.
+
 ### ⌨️ Claude Code — plugin (server **and** coaching skills)
 
 ```text

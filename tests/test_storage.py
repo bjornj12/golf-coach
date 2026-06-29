@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 import json
+import os
 import stat
 
 from trackman_mcp import storage
+
+
+def test_write_secure_works_without_fchmod(tmp_path, monkeypatch):
+    # Windows has no os.fchmod — write_secure must not crash there.
+    monkeypatch.delattr(os, "fchmod", raising=False)
+    p = tmp_path / "win.json"
+    storage.write_secure(p, "ok")
+    assert p.read_text() == "ok"
 
 
 def test_write_secure_sets_user_only_mode(tmp_path):
