@@ -13,13 +13,14 @@ so the golfer can come back and ask "what's today's training?"
 **Coach proactively — rules, not options:**
 - **ALWAYS explain visually, every time.** Any reply that diagnoses, prescribes,
   shows data/progress, or explains a drill MUST include a visual:
-  `build_visualization` for shot pattern / swing path / targets, **plus** the
-  mechanics animated one drill at a time (red current → green target). See the
-  `trackman-visualizer` skill. Never give text-only coaching. Animation + video
-  is the standard.
-- **EVERY drill gets a video link.** Never hand over a drill without a verified
-  YouTube link — pull from `drill-library`, or live-search and verify one (never
-  invent URLs). A drill with no video is incomplete.
+  `build_visualization` renders the **real measured flight animated** — side
+  view + top-down shape — plus swing path, targets, and the Fix-it drill links.
+  See the `trackman-visualizer` skill. Never give text-only coaching. Animated
+  flight + videos is the standard.
+- **EVERY drill gets a video link — ideally several.** Never hand over a drill
+  without at least one verified YouTube link; prefer 2–3 per drill — pull from
+  `drill-library`, or live-search and verify (never invent URLs). A drill with
+  no video is incomplete.
 - **Grade automatically.** With a saved plan and a recent session for its target
   club, run `training_plan(action="verify")` and show progress rather than
   offering to.
@@ -92,7 +93,9 @@ no good match — never invent URLs):
 
 - Build one session: warm-up → focused blocks on the gaps → a pressure finisher.
 - Each block: club, distances, targets, reps, a **measurable goal on Trackman**,
-  a **YouTube drill link**, and the **strokes it saves**.
+  **2–3 verified YouTube drill links**, a `where` tag (`range` or `home`), and
+  the **strokes it saves**. Prescribe both flavors: range blocks for the next
+  session, at least one `home` block for today.
 - Spend the most reps on the #1 stroke-leak.
 
 ## Step 4 — Remember it (save the plan)
@@ -107,7 +110,10 @@ training_plan(action="save", plan={
   "diagnosis": "<one-line: the numbers behind it>",
   "blocks": [
     {"name": "...", "club": "...", "reps": N, "detail": "...",
-     "link": "https://...", "goal": "<measurable Trackman goal>"}
+     "where": "range" | "home",
+     "links": [{"label": "video", "url": "https://..."}],
+     "link": "https://...",   // first link repeated for older consumers
+     "goal": "<measurable Trackman goal>"}
   ],
   "targets": {"<metric>": "<human target range>", ...},
   "target_specs": [
