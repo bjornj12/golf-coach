@@ -96,6 +96,7 @@ query GetSession($id: ID!) {
         measurement {
           ballSpeed carry total carrySide totalSide
           launchAngle launchDirection landingAngle ballSpin spinAxis curve
+          maxHeight hangTime
         }
       }
     }
@@ -105,7 +106,8 @@ query GetSession($id: ID!) {
         time club
         measurement {
           clubSpeed attackAngle ballSpeed smashFactor carry total
-          launchAngle spinRate spinAxis curve carrySide totalSide landingAngle
+          launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
+          landingAngle maxHeight hangTime
         }
       }
     }
@@ -115,7 +117,8 @@ query GetSession($id: ID!) {
         time club
         measurement {
           clubSpeed attackAngle ballSpeed smashFactor carry total
-          launchAngle spinRate spinAxis curve carrySide totalSide landingAngle
+          launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
+          landingAngle maxHeight hangTime
         }
       }
     }
@@ -125,7 +128,8 @@ query GetSession($id: ID!) {
         time club
         measurement {
           clubSpeed attackAngle ballSpeed smashFactor carry total
-          launchAngle spinRate spinAxis curve carrySide totalSide landingAngle
+          launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
+          landingAngle maxHeight hangTime
         }
       }
     }
@@ -135,7 +139,8 @@ query GetSession($id: ID!) {
         time club
         measurement {
           clubSpeed attackAngle ballSpeed smashFactor carry total
-          launchAngle spinRate spinAxis curve carrySide totalSide landingAngle
+          launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
+          landingAngle maxHeight hangTime
         }
       }
     }
@@ -145,7 +150,8 @@ query GetSession($id: ID!) {
         time club
         measurement {
           clubSpeed attackAngle ballSpeed smashFactor carry total
-          launchAngle spinRate spinAxis curve carrySide totalSide landingAngle
+          launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
+          landingAngle maxHeight hangTime
         }
       }
     }
@@ -168,7 +174,8 @@ query GetSession($id: ID!) {
             shotNumber club total launchLie finalLie shotResult
             measurement {
               ballSpeed clubSpeed smashFactor carry total
-              launchAngle spinRate curve carrySide totalSide landingAngle
+              launchAngle launchDirection spinRate curve carrySide totalSide
+              landingAngle maxHeight hangTime
             }
           }
         }

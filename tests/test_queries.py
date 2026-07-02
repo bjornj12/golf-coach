@@ -21,3 +21,12 @@ def test_list_sessions_exposes_clubs_for_prefilter():
     # The verify path pre-filters candidate sessions by the clubs already in the
     # list response — so the list query must select them.
     assert "clubs" in queries.LIST_SESSIONS
+
+
+def test_get_session_selects_trajectory_fields_everywhere():
+    # The side-view flight reconstruction (visualize.py) needs these fields for
+    # every activity kind a session can be — not just RangePracticeActivity.
+    # 8 = 7 session kinds + CoursePlay hole shots.
+    q = queries.GET_SESSION
+    for field in ("maxHeight", "hangTime", "launchDirection", "landingAngle"):
+        assert q.count(field) >= 8, f"{field} missing from some GET_SESSION kinds"
