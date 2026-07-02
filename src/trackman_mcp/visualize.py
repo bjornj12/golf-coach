@@ -64,8 +64,9 @@ _TEMPLATE = r"""<!doctype html>
   .pill.ok{background:rgba(39,192,138,.2);color:var(--good)}
   .pill.no{background:rgba(255,107,107,.2);color:var(--bad)}
   .pill.na{background:#22304a;color:var(--mut)}
-  .plan{margin-top:18px} .plan li{margin:6px 0;color:#cfe0f5}
-  .plan a{color:var(--acc)} .full{grid-column:1/-1}
+  .fixhead{margin:10px 0 4px;font-size:13px;color:#bcd2f0;letter-spacing:.3px;text-transform:uppercase}
+  .fixlist{margin:0 0 6px;padding-left:20px} .fixlist li{margin:6px 0;color:#cfe0f5}
+  .fixlist a{color:var(--acc)} .full{grid-column:1/-1}
   button{background:#1c2c47;color:var(--ink);border:1px solid #2b4068;border-radius:8px;
     padding:6px 12px;cursor:pointer;font-size:13px} button:hover{background:#22365a}
 </style></head>
@@ -93,8 +94,10 @@ _TEMPLATE = r"""<!doctype html>
     </div>
     <div class="card full"><h2>Progress vs targets</h2>
       <div class="bars" id="bars"></div>
-      <div class="plan"><ul id="plan"></ul></div>
       <button onclick="replay()">↻ Replay animation</button>
+    </div>
+    <div class="card full"><h2>Fix it — drills</h2>
+      <div id="fixit"></div>
     </div>
   </div>
 </div>
@@ -260,19 +263,34 @@ function renderBars(){
     div.appendChild(track);
     host.appendChild(div);
   });
-  const plan=$('#plan');plan.textContent="";
-  (DATA.blocks||[]).forEach(b=>{const li=document.createElement('li');
-    li.appendChild(el('b',null,b.name||''));
-    li.appendChild(document.createTextNode(' — '+(b.detail||b.goal||'')+' '));
-    const href=safeHref(b.link);
-    if(href){const a=el('a',null,'video ↗'); a.href=href; a.target='_blank';
-      a.rel='noopener noreferrer'; li.appendChild(a);}
-    plan.appendChild(li);});
+}
+
+// ---------- fix it: drills grouped by where, multiple links each ----------
+function renderBlocks(){
+  const host=$('#fixit'); host.textContent="";
+  [["range","At the range"],["home","At home — no ball"]].forEach(([key,label])=>{
+    const items=(DATA.blocks||[]).filter(b=>(b.where||"range")===key);
+    if(!items.length) return;
+    host.appendChild(el('h3','fixhead',label));
+    const ul=el('ul','fixlist');
+    items.forEach(b=>{const li=el('li');
+      li.appendChild(el('b',null,b.name||''));
+      li.appendChild(document.createTextNode(' — '+(b.detail||b.goal||'')+' '));
+      const links=Array.isArray(b.links)?b.links
+        :(b.link?[{label:'video',url:b.link}]:[]);
+      let shown=0;
+      links.forEach(L=>{const href=safeHref(L&&L.url); if(!href) return;
+        if(shown++) li.appendChild(document.createTextNode(' · '));
+        const a=el('a',null,(L.label||'video')+' ↗');
+        a.href=href; a.target='_blank'; a.rel='noopener noreferrer';
+        li.appendChild(a);});
+      ul.appendChild(li);});
+    host.appendChild(ul);});
 }
 
 function replay(){cancelAnimationFrame(raf1);cancelAnimationFrame(raf2);
   flightT=0;swingT=0;drawFlight();drawSwing();}
-renderBars();drawFlight();drawSwing();
+renderBars();renderBlocks();drawFlight();drawSwing();
 window.addEventListener('resize',()=>{drawFlight();drawSwing();});
 </script></body></html>
 """

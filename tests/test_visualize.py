@@ -98,3 +98,24 @@ def test_valid_blocks_with_links_and_legacy_link_pass():
         {"name": "b", "link": "https://example.com/w"},   # legacy single link
     ]})
     assert html.lstrip().lower().startswith("<!doctype html>")
+
+
+def test_fixit_section_replaces_flat_plan_list():
+    html = build_html({"title": "ok"})
+    assert 'id="fixit"' in html
+    assert 'id="plan"' not in html          # the old flat list is gone
+    assert "renderBlocks" in html
+    # groups render only when they have items (no empty headers)
+    assert "if(!items.length) return" in html
+
+
+def test_hostile_link_label_and_url_cannot_break_out():
+    html = build_html({
+        "title": "ok",
+        "blocks": [{"name": "Drill", "where": "home",
+                    "links": [{"label": "</script><script>alert(1)</script>",
+                               "url": "javascript:alert(1)"}]}],
+    })
+    # embedded JSON stays breakout-safe; only the template's own script closes
+    assert html.count("</script>") == 1
+    assert "<script>alert(1)" not in html
