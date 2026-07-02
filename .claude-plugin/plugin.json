@@ -1,7 +1,7 @@
 {
   "name": "trackman-golf",
   "description": "Connect to Trackman Golf with your own login, expose your stats as MCP tools, and coach from them with bundled skills.",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "author": { "name": "Bjorn Jonsson", "email": "bjorn@avo.sh" },
   "homepage": "https://github.com/bjornj12/trackman-mcp-client",
   "repository": "https://github.com/bjornj12/trackman-mcp-client",
