@@ -1,10 +1,10 @@
 # Practice at Home (no ball, no range)
 
 Build the user a short **daily no-ball routine** they can do in the yard or living
-room with just a club, targeting their actual swing fault — and **show each drill
-animated**, because this is usually asked by someone who learns by seeing, not
-reading. Use when they say "what can I do at home / without a ball / no range,"
-or can't get to a range.
+room with just a club, targeting their actual swing fault — anchored in a visual
+of **what their ball is actually doing** (the trajectory page), with **multiple
+verified videos per drill** to follow. Use when they say "what can I do at home /
+without a ball / no range," or can't get to a range.
 
 ## Steps
 
@@ -26,11 +26,12 @@ or can't get to a range.
    and what it fixes. Daily beats weekly; go slow and over-correct (neutral will
    feel like a hook at first).
 
-4. **Show it — one drill at a time, with a video.** Animate each drill's intended
-   motion (red current move → green target move) via the `trackman-visualizer`
-   prompt, one per exercise, **and give each drill a verified YouTube link** (from
-   the `drill-library` prompt, or live-search + verify one — never invent URLs).
-   Animation + video for every drill; lead with the visual, don't make them ask.
+4. **Show the fault, then the fixes.** Render the diagnosis once via the
+   `trackman-visualizer` prompt — the animated trajectory page built from their
+   real shots, with these drills as `where: "home"` blocks in its Fix-it
+   section. Give **every drill 2–3 verified YouTube links** (from the
+   `drill-library` prompt, or live-search + verify — never invent URLs) plus its
+   feel cue and reps. Lead with the visual, don't make them ask.
 
 5. **Save it so it sticks.** Persist the routine with `training_plan(action="save")`
    (title like "At-home no-ball slice routine", the drills as blocks, the fault

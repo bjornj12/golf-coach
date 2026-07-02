@@ -1,14 +1,15 @@
 ---
 name: golf-practice-at-home
-description: Use when the user wants to practice at home / in the yard / without a ball or range, or can't get to a range. Builds a short daily no-ball routine targeting their diagnosed swing fault, shows each drill animated one at a time, and saves it as a training plan to recall and grade later. Triggers on "practice at home", "no range", "without a ball", "in the yard", "drills I can do at home".
+description: Use when the user wants to practice at home / in the yard / without a ball or range, or can't get to a range. Builds a short daily no-ball routine targeting their diagnosed swing fault, gives every drill multiple verified video links, and saves it as a training plan to recall and grade later. Triggers on "practice at home", "no range", "without a ball", "in the yard", "drills I can do at home".
 ---
 
 # Practice at Home (no ball, no range)
 
 Build the user a short **daily no-ball routine** for the yard or living room with
-just a club, targeting their actual swing fault — and **show each drill
-animated**, since this is usually asked by someone who learns by seeing. The MCP
-tools supply the data; this skill turns it into a home routine.
+just a club, targeting their actual swing fault — anchored in a visual of **what
+their ball is actually doing** (the trajectory page), with **multiple verified
+videos per drill** to follow. The MCP tools supply the data; this skill turns it
+into a home routine.
 
 ## Steps
 
@@ -27,10 +28,12 @@ tools supply the data; this skill turns it into a home routine.
    (transition → path → face), reps each, one *feel* per drill, what it fixes.
    Daily beats weekly; go slow and over-correct (neutral feels like a hook first).
 
-4. **Show it — one drill at a time, with a video.** Animate each drill (red
-   current → green target) via the `trackman-visualizer` skill, one per exercise,
-   **and give each a verified YouTube link** (from `drill-library`, or
-   live-search + verify — never invent URLs). Animation + video for every drill.
+4. **Show the fault, then the fixes.** Render the diagnosis once via the
+   `trackman-visualizer` skill — the animated trajectory page built from their
+   real shots, with these drills as `where: "home"` blocks in its Fix-it
+   section. Give **every drill 2–3 verified YouTube links** (from
+   `drill-library`, or live-search + verify — never invent URLs) plus its feel
+   cue and reps. The videos teach the motion; the page shows why it matters.
 
 5. **Save it.** Persist with `training_plan(action="save")` (title, drills as
    blocks, fault in `diagnosis`, `target_specs` from the swing plan if
