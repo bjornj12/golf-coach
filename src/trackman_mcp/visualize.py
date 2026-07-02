@@ -296,6 +296,35 @@ def _json_for_script(data: dict) -> str:
     )
 
 
+_VALID_WHERE = ("home", "range")
+
+
+def _validate_blocks(data: dict) -> None:
+    """Fail loudly on malformed practice blocks (repo convention: no silent skips)."""
+    blocks = data.get("blocks")
+    if blocks is None:
+        return
+    if not isinstance(blocks, list):
+        raise ValueError("blocks must be a list")
+    for i, b in enumerate(blocks):
+        if not isinstance(b, dict):
+            raise ValueError(f"blocks[{i}] must be an object")
+        where = b.get("where", "range")
+        if where not in _VALID_WHERE:
+            raise ValueError(
+                f"blocks[{i}].where is {where!r}; expected one of: home, range")
+        links = b.get("links")
+        if links is None:
+            continue
+        if not isinstance(links, list):
+            raise ValueError(f"blocks[{i}].links must be a list of {{label, url}}")
+        for j, link in enumerate(links):
+            if not (isinstance(link, dict) and isinstance(link.get("url"), str)
+                    and isinstance(link.get("label", ""), str)):
+                raise ValueError(
+                    f"blocks[{i}].links[{j}] must be {{label, url}} with a string url")
+
+
 def build_html(data: dict) -> str:
     """Render the visualization HTML, escaping all data against injection.
 
@@ -303,6 +332,7 @@ def build_html(data: dict) -> str:
     body); the rest of `data` is embedded as breakout-safe JSON and rendered
     client-side via textContent (see the template's safe DOM helpers).
     """
+    _validate_blocks(data)
     replacements = {
         "__DATA__": _json_for_script(data),
         "__TITLE__": _html.escape(str(data.get("title", "Trackman Coach"))),

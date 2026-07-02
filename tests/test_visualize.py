@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from trackman_mcp.visualize import build_html
 
 
@@ -71,3 +73,28 @@ def test_demo_data_renders():
     from trackman_mcp import visualize
     html = build_html(visualize._DEMO)
     assert "<canvas" in html
+
+
+def test_unknown_where_is_a_loud_error():
+    with pytest.raises(ValueError, match="where.*'gym'.*home, range"):
+        build_html({"blocks": [{"name": "x", "where": "gym"}]})
+
+
+def test_malformed_links_entry_is_a_loud_error():
+    # a bare string instead of {label, url} must be rejected, not skipped
+    with pytest.raises(ValueError, match=r"blocks\[0\]\.links\[0\]"):
+        build_html({"blocks": [{"name": "x", "links": ["https://y"]}]})
+
+
+def test_links_must_be_a_list():
+    with pytest.raises(ValueError, match=r"blocks\[0\]\.links must be a list"):
+        build_html({"blocks": [{"name": "x", "links": "https://y"}]})
+
+
+def test_valid_blocks_with_links_and_legacy_link_pass():
+    html = build_html({"blocks": [
+        {"name": "a", "where": "home",
+         "links": [{"label": "video", "url": "https://example.com/v"}]},
+        {"name": "b", "link": "https://example.com/w"},   # legacy single link
+    ]})
+    assert html.lstrip().lower().startswith("<!doctype html>")
