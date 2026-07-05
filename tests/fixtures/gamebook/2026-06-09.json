@@ -1,0 +1,48 @@
+{
+  "id": "2026-06-09",
+  "date": "2026-06-09",
+  "source": "golf-gamebook",
+  "course": {"par": 70, "cr": 68.1, "slope": 119, "name": null},
+  "result": {"gross": 109, "net": 62, "to_par": 39, "position": "1/4"},
+  "holes": [
+    {"hole": 1, "par": 4, "score": 7, "putts": 2, "fairway": "hit", "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
+    {"hole": 2, "par": 3, "score": 5, "putts": 2, "fairway": "na", "gir": false, "bunkers": 0, "chips": 2, "penalties": 0},
+    {"hole": 3, "par": 4, "score": 6, "putts": 2, "fairway": "hit", "gir": false, "bunkers": 0, "chips": 2, "penalties": 0},
+    {"hole": 4, "par": 4, "score": 6, "putts": null, "fairway": null, "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
+    {"hole": 5, "par": 3, "score": 4, "putts": 3, "fairway": "na", "gir": true, "bunkers": 0, "chips": 1, "penalties": 0},
+    {"hole": 6, "par": 5, "score": 6, "putts": 2, "fairway": "hit", "gir": false, "bunkers": 0, "chips": 1, "penalties": 0},
+    {"hole": 7, "par": 3, "score": 4, "putts": 2, "fairway": "na", "gir": false, "bunkers": 0, "chips": 1, "penalties": 0},
+    {"hole": 8, "par": 4, "score": 5, "putts": 2, "fairway": "miss_right", "gir": false, "bunkers": 0, "chips": 2, "penalties": 0},
+    {"hole": 9, "par": 5, "score": 6, "putts": 2, "fairway": "miss_right", "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
+    {"hole": 10, "par": 4, "score": 5, "putts": 2, "fairway": "hit", "gir": false, "bunkers": 0, "chips": 2, "penalties": 0},
+    {"hole": 11, "par": 4, "score": 7, "putts": null, "fairway": null, "gir": false, "bunkers": 0, "chips": null, "penalties": 0},
+    {"hole": 12, "par": 4, "score": 5, "putts": null, "fairway": null, "gir": false, "bunkers": 0, "chips": null, "penalties": 0},
+    {"hole": 13, "par": 5, "score": 8, "putts": 4, "fairway": null, "gir": false, "bunkers": 0, "chips": 1, "penalties": 0},
+    {"hole": 14, "par": 3, "score": 6, "putts": null, "fairway": "na", "gir": false, "bunkers": 0, "chips": null, "penalties": 0},
+    {"hole": 15, "par": 5, "score": 7, "putts": 2, "fairway": null, "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
+    {"hole": 16, "par": 3, "score": 9, "putts": null, "fairway": "na", "gir": false, "bunkers": 3, "chips": 0, "penalties": 0},
+    {"hole": 17, "par": 4, "score": 6, "putts": 2, "fairway": null, "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
+    {"hole": 18, "par": 3, "score": 7, "putts": null, "fairway": "na", "gir": false, "bunkers": 0, "chips": 0, "penalties": 1}
+  ],
+  "scoring": {
+    "to_par": 39,
+    "distribution": {"eagle_or_better": 0, "birdie": 0, "par": 0, "bogey": 7, "double": 5, "triple_plus": 6},
+    "by_par_type": {"par3": 2.83, "par4": 1.88, "par5": 1.75}
+  },
+  "dimensions": {
+    "putts": {"total": 27, "holes_tracked": 12, "coverage": "partial"},
+    "fairways": {"hit": 4, "tracked": 6, "eligible": 12, "coverage": "partial"},
+    "gir": {"hit": 1, "tracked": 12, "coverage": "partial"},
+    "bunkers": {"total": 3, "coverage": "partial"},
+    "chips": {"total": 12, "coverage": "partial"},
+    "penalties": {"total": 1, "coverage": "partial"},
+    "sand_save": {"value": null, "coverage": "none"},
+    "up_and_down": {"value": null, "coverage": "none"},
+    "scrambling": {"value": null, "coverage": "none"}
+  },
+  "coverage": {"scoring": "full", "putts": "partial", "fairways": "partial", "gir": "partial", "short_game": "none"},
+  "notes": [
+    "GIR: scorecard shows 1/18 (hole 5) but the Stats dial reads ~8% — treated as low-confidence.",
+    "Sand save / up-and-down / scrambling shown as 0.0% with no hole-level data -> coverage none, not a real zero."
+  ]
+}
