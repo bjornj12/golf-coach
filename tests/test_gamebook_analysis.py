@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from trackman_mcp import gamebook_analysis as ga
+
+GOLDEN = Path(__file__).parent / "fixtures" / "gamebook" / "2026-06-09.json"
 
 
 def test_hole_result_buckets():
@@ -127,3 +132,30 @@ def test_compare_no_priors_is_safe():
     assert out["n_priors"] == 0
     assert out["scoring"] == {}
     assert out["dimensions"] == {}
+
+
+def test_grade_perfect_extraction_scores_100():
+    golden = json.loads(GOLDEN.read_text())
+    report = ga.grade_extraction(golden, golden)
+    assert report["score"] == 100.0
+    assert report["holes_correct"] == report["holes_total"] == 18
+    assert report["mismatches"] == []
+
+
+def test_grade_flags_a_wrong_hole():
+    golden = json.loads(GOLDEN.read_text())
+    extracted = json.loads(GOLDEN.read_text())
+    extracted["holes"][15]["score"] = 5          # hole 16 was 9
+    report = ga.grade_extraction(extracted, golden)
+    assert report["holes_correct"] == 17
+    assert report["score"] < 100.0
+    assert any("hole 16" in m for m in report["mismatches"])
+
+
+def test_grade_flags_wrong_coverage():
+    golden = json.loads(GOLDEN.read_text())
+    extracted = json.loads(GOLDEN.read_text())
+    extracted["coverage"]["sand_save"] = "full"  # the 0.0% trap: should stay none/absent
+    report = ga.grade_extraction(extracted, golden)
+    assert report["coverage_ok"] is False
+    assert any("sand_save" in m for m in report["mismatches"])

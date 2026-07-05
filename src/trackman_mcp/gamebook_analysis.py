@@ -149,3 +149,59 @@ def compare_rounds(latest: dict[str, Any], priors: list[dict[str, Any]]) -> dict
             _tracked(p, dim) for p in priors
         )
     return out
+
+
+def grade_extraction(extracted: dict[str, Any], golden: dict[str, Any]) -> dict[str, Any]:
+    """Score an extracted round against a hand-verified golden record.
+
+    Weights per-hole score/par most (that's the reliable ground truth), then the
+    derived scoring block, then coverage flags (getting `none` right on untracked
+    dimensions matters as much as the numbers). Returns a 0–100 score and the
+    exact mismatches so the skill prompt can be iterated.
+    """
+    mismatches: list[str] = []
+
+    g_holes = {int(h["hole"]): h for h in golden.get("holes", [])}
+    e_holes = {int(h["hole"]): h for h in extracted.get("holes", [])}
+    holes_total = len(g_holes)
+    holes_correct = 0
+    for hole, gh in sorted(g_holes.items()):
+        eh = e_holes.get(hole)
+        if eh and int(eh.get("par", -1)) == int(gh["par"]) \
+                and int(eh.get("score", -2)) == int(gh["score"]):
+            holes_correct += 1
+        else:
+            got = f"{eh.get('par')}/{eh.get('score')}" if eh else "—/—"
+            mismatches.append(
+                f"hole {hole}: expected par {gh['par']}/score {gh['score']}, got {got}"
+            )
+    holes_score = holes_correct / holes_total if holes_total else 0.0
+
+    gs = golden.get("scoring") or {}
+    es = extracted.get("scoring") or scoring_from_holes(extracted.get("holes", []))
+    scoring_ok = (
+        es.get("to_par") == gs.get("to_par")
+        and es.get("distribution") == gs.get("distribution")
+        and es.get("by_par_type") == gs.get("by_par_type")
+    )
+    if not scoring_ok:
+        mismatches.append(
+            f"scoring: to_par {es.get('to_par')} vs {gs.get('to_par')}, "
+            f"distribution {es.get('distribution')} vs {gs.get('distribution')}"
+        )
+
+    gc = golden.get("coverage") or {}
+    ec = extracted.get("coverage") or {}
+    cov_wrong = [k for k in set(gc) | set(ec) if gc.get(k) != ec.get(k)]
+    coverage_ok = not cov_wrong
+    for k in sorted(cov_wrong):
+        mismatches.append(f"coverage[{k}]: expected {gc.get(k)!r}, got {ec.get(k)!r}")
+
+    score = round(
+        100 * (0.70 * holes_score
+               + 0.15 * (1.0 if scoring_ok else 0.0)
+               + 0.15 * (1.0 if coverage_ok else 0.0)),
+        1,
+    )
+    return {"score": score, "holes_correct": holes_correct, "holes_total": holes_total,
+            "scoring_ok": scoring_ok, "coverage_ok": coverage_ok, "mismatches": mismatches}
