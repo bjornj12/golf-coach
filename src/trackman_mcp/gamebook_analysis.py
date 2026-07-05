@@ -110,6 +110,9 @@ def compare_rounds(latest: dict[str, Any], priors: list[dict[str, Any]]) -> dict
     Returns per-metric {latest, prior_mean, delta, direction}. No narrative — the
     coaching skill turns this into progress/regression talk.
     """
+    if not priors:
+        return {"round_id": latest.get("id"), "n_priors": 0,
+                "scoring": {}, "dimensions": {}, "comparable": {}}
     out: dict[str, Any] = {
         "round_id": latest.get("id"),
         "n_priors": len(priors),

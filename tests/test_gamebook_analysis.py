@@ -118,3 +118,12 @@ def test_compare_putts_when_all_tracked():
     assert p["latest"] == 1.5           # 27/18
     assert p["prior_mean"] == 2.0       # 36/18
     assert p["direction"] == "better"   # fewer putts is better
+
+
+def test_compare_no_priors_is_safe():
+    latest = _round("r1", 40, 2.8, 1.9, 1.8)
+    out = ga.compare_rounds(latest, [])
+    assert out["round_id"] == "r1"
+    assert out["n_priors"] == 0
+    assert out["scoring"] == {}
+    assert out["dimensions"] == {}
