@@ -79,3 +79,70 @@ def self_check(record: dict[str, Any]) -> list[str]:
         problems.append(f"hole pars sum to {par_total} but course par is {course_par}")
 
     return problems
+
+
+_LOWER_IS_BETTER = {"to_par", "par3", "par4", "par5", "putts_per_hole"}
+
+
+def _mean(values: list[float]) -> float | None:
+    return round(sum(values) / len(values), 2) if values else None
+
+
+def _delta_block(metric: str, latest: float, prior_mean: float) -> dict[str, Any]:
+    delta = round(latest - prior_mean, 2)
+    if delta == 0:
+        direction = "same"
+    else:
+        improved = delta < 0 if metric in _LOWER_IS_BETTER else delta > 0
+        direction = "better" if improved else "worse"
+    return {"latest": latest, "prior_mean": prior_mean, "delta": delta,
+            "direction": direction}
+
+
+def _tracked(round_: dict[str, Any], dim: str) -> bool:
+    return (round_.get("coverage") or {}).get(dim, "none") != "none"
+
+
+def compare_rounds(latest: dict[str, Any], priors: list[dict[str, Any]]) -> dict[str, Any]:
+    """Deterministic newest-vs-prior deltas. Scoring is always compared; other
+    dimensions only when BOTH the latest and every prior actually tracked them.
+
+    Returns per-metric {latest, prior_mean, delta, direction}. No narrative — the
+    coaching skill turns this into progress/regression talk.
+    """
+    out: dict[str, Any] = {
+        "round_id": latest.get("id"),
+        "n_priors": len(priors),
+        "scoring": {},
+        "dimensions": {},
+        "comparable": {},
+    }
+    ls = latest["scoring"]
+    out["scoring"]["to_par"] = _delta_block(
+        "to_par", float(ls["to_par"]),
+        _mean([float(p["scoring"]["to_par"]) for p in priors]),
+    )
+    for k in ("par3", "par4", "par5"):
+        lv = ls["by_par_type"].get(k)
+        pv = _mean([p["scoring"]["by_par_type"][k] for p in priors
+                    if k in p["scoring"]["by_par_type"]])
+        if lv is not None and pv is not None:
+            out["scoring"][k] = _delta_block(k, float(lv), pv)
+
+    # Putts/hole — only if latest and ALL priors tracked putts.
+    if _tracked(latest, "putts") and all(_tracked(p, "putts") for p in priors):
+        def pph(r: dict[str, Any]) -> float:
+            d = r["dimensions"]["putts"]
+            return round(d["total"] / max(d["holes_tracked"], 1), 2)
+        out["dimensions"]["putts_per_hole"] = _delta_block(
+            "putts_per_hole", pph(latest), _mean([pph(p) for p in priors])
+        )
+    else:
+        out["dimensions"]["putts_per_hole"] = {"skipped": "coverage"}
+
+    # Report (but don't compute) whether accuracy dims are comparable.
+    for dim in ("fairways", "gir"):
+        out["comparable"][dim] = _tracked(latest, dim) and all(
+            _tracked(p, dim) for p in priors
+        )
+    return out

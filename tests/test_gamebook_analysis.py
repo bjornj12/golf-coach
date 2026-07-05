@@ -75,3 +75,46 @@ def test_self_check_flags_par_mismatch_and_hole_count():
     rec["holes"] = rec["holes"][:17]  # 17 holes, pars now sum to 67
     problems = ga.self_check(rec)
     assert any("holes" in p for p in problems)
+
+
+def _round(rid, to_par, par3, par4, par5, putts_total=None, putts_holes=0):
+    cov_putts = ga.coverage_flag(putts_holes, 18)
+    return {
+        "id": rid,
+        "scoring": {"to_par": to_par,
+                    "by_par_type": {"par3": par3, "par4": par4, "par5": par5}},
+        "coverage": {"scoring": "full", "putts": cov_putts},
+        "dimensions": {"putts": {"total": putts_total, "holes_tracked": putts_holes,
+                                 "coverage": cov_putts}},
+    }
+
+
+def test_compare_scoring_direction_lower_is_better():
+    latest = _round("r3", 30, 2.0, 1.5, 1.5)
+    priors = [_round("r1", 40, 2.8, 1.9, 1.8), _round("r2", 36, 2.6, 1.7, 1.6)]
+    out = ga.compare_rounds(latest, priors)
+    assert out["round_id"] == "r3"
+    assert out["n_priors"] == 2
+    assert out["scoring"]["to_par"]["prior_mean"] == 38.0
+    assert out["scoring"]["to_par"]["delta"] == -8.0
+    assert out["scoring"]["to_par"]["direction"] == "better"
+    assert out["scoring"]["par4"]["direction"] == "better"
+
+
+def test_compare_putts_gated_on_coverage():
+    # latest has putts, but one prior has none -> not comparable, skipped.
+    latest = _round("r3", 30, 2.0, 1.5, 1.5, putts_total=30, putts_holes=18)
+    priors = [_round("r1", 40, 2.8, 1.9, 1.8, putts_total=33, putts_holes=18),
+              _round("r2", 36, 2.6, 1.7, 1.6, putts_total=None, putts_holes=0)]
+    out = ga.compare_rounds(latest, priors)
+    assert out["dimensions"]["putts_per_hole"] == {"skipped": "coverage"}
+
+
+def test_compare_putts_when_all_tracked():
+    latest = _round("r3", 30, 2.0, 1.5, 1.5, putts_total=27, putts_holes=18)
+    priors = [_round("r1", 40, 2.8, 1.9, 1.8, putts_total=36, putts_holes=18)]
+    out = ga.compare_rounds(latest, priors)
+    p = out["dimensions"]["putts_per_hole"]
+    assert p["latest"] == 1.5           # 27/18
+    assert p["prior_mean"] == 2.0       # 36/18
+    assert p["direction"] == "better"   # fewer putts is better
