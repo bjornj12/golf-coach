@@ -37,5 +37,12 @@ viz/
 *-viz.html
 *.viz.html
 
+# Raw GameBook screenshots are personal — keep the images local; commit only the
+# hand-verified golden JSON + manifest for the extraction grader/eval.
+tests/fixtures/gamebook/**/*.png
+tests/fixtures/gamebook/**/*.PNG
+tests/fixtures/gamebook/**/*.jpg
+tests/fixtures/gamebook/**/*.jpeg
+
 # the .mcpb launcher resolves deps at install time; no lock
 mcpb/uv.lock
