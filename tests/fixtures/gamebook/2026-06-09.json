@@ -8,21 +8,21 @@
     {"hole": 1, "par": 4, "score": 7, "putts": 2, "fairway": "hit", "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
     {"hole": 2, "par": 3, "score": 5, "putts": 2, "fairway": "na", "gir": false, "bunkers": 0, "chips": 2, "penalties": 0},
     {"hole": 3, "par": 4, "score": 6, "putts": 2, "fairway": "hit", "gir": false, "bunkers": 0, "chips": 2, "penalties": 0},
-    {"hole": 4, "par": 4, "score": 6, "putts": null, "fairway": null, "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
+    {"hole": 4, "par": 4, "score": 6, "putts": null, "fairway": null, "gir": null, "bunkers": 0, "chips": 0, "penalties": 0},
     {"hole": 5, "par": 3, "score": 4, "putts": 3, "fairway": "na", "gir": true, "bunkers": 0, "chips": 1, "penalties": 0},
     {"hole": 6, "par": 5, "score": 6, "putts": 2, "fairway": "hit", "gir": false, "bunkers": 0, "chips": 1, "penalties": 0},
     {"hole": 7, "par": 3, "score": 4, "putts": 2, "fairway": "na", "gir": false, "bunkers": 0, "chips": 1, "penalties": 0},
     {"hole": 8, "par": 4, "score": 5, "putts": 2, "fairway": "miss_right", "gir": false, "bunkers": 0, "chips": 2, "penalties": 0},
     {"hole": 9, "par": 5, "score": 6, "putts": 2, "fairway": "miss_right", "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
     {"hole": 10, "par": 4, "score": 5, "putts": 2, "fairway": "hit", "gir": false, "bunkers": 0, "chips": 2, "penalties": 0},
-    {"hole": 11, "par": 4, "score": 7, "putts": null, "fairway": null, "gir": false, "bunkers": 0, "chips": null, "penalties": 0},
-    {"hole": 12, "par": 4, "score": 5, "putts": null, "fairway": null, "gir": false, "bunkers": 0, "chips": null, "penalties": 0},
+    {"hole": 11, "par": 4, "score": 7, "putts": null, "fairway": null, "gir": null, "bunkers": 0, "chips": null, "penalties": 0},
+    {"hole": 12, "par": 4, "score": 5, "putts": null, "fairway": null, "gir": null, "bunkers": 0, "chips": null, "penalties": 0},
     {"hole": 13, "par": 5, "score": 8, "putts": 4, "fairway": null, "gir": false, "bunkers": 0, "chips": 1, "penalties": 0},
-    {"hole": 14, "par": 3, "score": 6, "putts": null, "fairway": "na", "gir": false, "bunkers": 0, "chips": null, "penalties": 0},
+    {"hole": 14, "par": 3, "score": 6, "putts": null, "fairway": "na", "gir": null, "bunkers": 0, "chips": null, "penalties": 0},
     {"hole": 15, "par": 5, "score": 7, "putts": 2, "fairway": null, "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
-    {"hole": 16, "par": 3, "score": 9, "putts": null, "fairway": "na", "gir": false, "bunkers": 3, "chips": 0, "penalties": 0},
+    {"hole": 16, "par": 3, "score": 9, "putts": null, "fairway": "na", "gir": null, "bunkers": 3, "chips": 0, "penalties": 0},
     {"hole": 17, "par": 4, "score": 6, "putts": 2, "fairway": null, "gir": false, "bunkers": 0, "chips": 0, "penalties": 0},
-    {"hole": 18, "par": 3, "score": 7, "putts": null, "fairway": "na", "gir": false, "bunkers": 0, "chips": 0, "penalties": 1}
+    {"hole": 18, "par": 3, "score": 7, "putts": null, "fairway": "na", "gir": null, "bunkers": 0, "chips": 0, "penalties": 1}
   ],
   "scoring": {
     "to_par": 39,
@@ -42,7 +42,7 @@
   },
   "coverage": {"scoring": "full", "putts": "partial", "fairways": "partial", "gir": "partial", "short_game": "none"},
   "notes": [
-    "GIR: scorecard shows 1/18 (hole 5) but the Stats dial reads ~8% — treated as low-confidence.",
+    "GIR: 1 green hit (hole 5) of the 12 holes where it was tracked (GameBook derives GIR only where putts were entered); the Stats dial's ~8% is the app's own rounding — treated as low-confidence.",
     "Sand save / up-and-down / scrambling shown as 0.0% with no hole-level data -> coverage none, not a real zero."
   ]
 }

@@ -40,3 +40,12 @@ def test_golden_fixture_matches_analytics():
     assert record["coverage"]["scoring"] == "full"
     assert record["coverage"]["gir"] in ("partial", "none")
     assert record["dimensions"]["sand_save"]["coverage"] == "none"
+
+    # GIR is internally consistent: non-null exactly where putts were entered,
+    # and the per-hole marks reconcile with dimensions.gir.
+    gir_tracked = [h for h in record["holes"] if h.get("gir") is not None]
+    gir_hits = [h for h in gir_tracked if h["gir"] is True]
+    assert len(gir_tracked) == record["dimensions"]["gir"]["tracked"]
+    assert len(gir_hits) == record["dimensions"]["gir"]["hit"]
+    putts_tracked = {h["hole"] for h in record["holes"] if h.get("putts") is not None}
+    assert {h["hole"] for h in gir_tracked} == putts_tracked
