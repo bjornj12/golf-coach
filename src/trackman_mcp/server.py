@@ -38,6 +38,7 @@ mcp = FastMCP(
 _RO_API = {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": True}
 _RO_LOCAL = {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False}
 _WRITE_API = {"readOnlyHint": False, "idempotentHint": False, "openWorldHint": True}
+_WRITE_LOCAL = {"readOnlyHint": False, "idempotentHint": False, "openWorldHint": False}
 
 # Seconds to wait for a silent refresh before giving up (dead session fails fast).
 SILENT_REFRESH_TIMEOUT = 30.0
@@ -551,6 +552,112 @@ async def setup() -> dict[str, Any]:
     from .onboarding import build_setup_kit
 
     return build_setup_kit()
+
+
+# --------------------------------------------------------------------------- #
+# GameBook rounds (on-course data ingested from screenshots)
+# --------------------------------------------------------------------------- #
+
+
+def _gamebook_save(record: dict[str, Any]) -> dict[str, Any]:
+    from . import gamebook_analysis as ga
+    from . import gamebook_store
+
+    record = dict(record)
+    problems = ga.self_check(record)
+    if problems:
+        return {"saved": False, "problems": problems,
+                "message": "Read failed self-check — re-check these holes before saving."}
+
+    record["scoring"] = ga.scoring_from_holes(record.get("holes") or [])
+    record.setdefault("source", "golf-gamebook")
+
+    # Derive id from date, suffixing on same-day collisions with a different round.
+    base = record.get("id") or record.get("date") or "round"
+    rid, n = base, 1
+    while True:
+        existing = gamebook_store.get_round(rid)
+        same_round = existing is not None and \
+            existing.get("result", {}).get("gross") == record.get("result", {}).get("gross")
+        if existing is None or same_round:
+            break
+        n += 1
+        rid = f"{base}-{n}"
+    record["id"] = rid
+
+    saved = gamebook_store.save_round(record)
+    return {"saved": True, "round": saved,
+            "stored_count": len(gamebook_store.list_rounds())}
+
+
+def _gamebook_list() -> dict[str, Any]:
+    from . import gamebook_store
+
+    rounds = gamebook_store.list_rounds()
+    items = [
+        {"id": r.get("id"), "date": r.get("date"),
+         "course_par": (r.get("course") or {}).get("par"),
+         "gross": (r.get("result") or {}).get("gross"),
+         "net": (r.get("result") or {}).get("net"),
+         "to_par": (r.get("scoring") or {}).get("to_par"),
+         "coverage": r.get("coverage")}
+        for r in rounds
+    ]
+    return {"count": len(items),
+            "latest_id": items[0]["id"] if items else None, "items": items}
+
+
+def _gamebook_compare(round_id: str | None) -> dict[str, Any]:
+    from . import gamebook_analysis as ga
+    from . import gamebook_store
+
+    latest = gamebook_store.get_round(round_id) if round_id else gamebook_store.latest_round()
+    if latest is None:
+        return {"error": "no stored rounds to compare"}
+    priors = gamebook_store.priors_of(latest["id"])
+    if not priors:
+        return {"round_id": latest["id"], "n_priors": 0,
+                "message": "First stored round — nothing earlier to compare against yet."}
+    return ga.compare_rounds(latest, priors)
+
+
+@mcp.tool(annotations=_WRITE_LOCAL)
+async def gamebook_round(
+    action: Literal["save", "list", "get", "compare"],
+    round: dict[str, Any] | None = None,
+    round_id: str | None = None,
+) -> dict[str, Any]:
+    """On-course rounds ingested from Golf GameBook screenshots (local, last 5).
+
+    The `gamebook-screenshot-analysis` skill extracts a round from screenshots
+    and saves it here. Only score-per-hole is trusted; every other dimension
+    carries a `coverage` flag (`full`|`partial`|`none`) and analysis respects it.
+
+    Actions:
+    - `save` (needs `round`): a coverage-aware record — {date, course:{par,cr,slope},
+      result:{gross,net,to_par,position}, holes:[{hole,par,score,putts?,fairway?,
+      gir?,bunkers?,chips?,penalties?}], coverage:{...}, dimensions:{...}}. Runs a
+      self-check (hole sums vs gross/par); refuses inconsistent reads. Computes the
+      `scoring` block, stores it (last 5), returns the stored record.
+    - `list`: index of stored rounds (id, date, gross, net, to_par, coverage), newest first.
+    - `get` (needs `round_id`): one full stored round.
+    - `compare` (optional `round_id`, default latest): deterministic deltas vs the
+      rounds before it — scoring always, other dimensions only where both tracked
+      them. Returns measurement; the coach narrates progress from it.
+    """
+    from . import gamebook_store
+
+    if action == "save":
+        if not isinstance(round, dict) or not round:
+            raise ValueError("gamebook_round(action='save') needs a non-empty `round`.")
+        return _gamebook_save(round)
+    if action == "list":
+        return _gamebook_list()
+    if action == "get":
+        if not round_id:
+            raise ValueError("gamebook_round(action='get') needs a `round_id`.")
+        return gamebook_store.get_round(round_id) or {"error": f"no round {round_id}"}
+    return _gamebook_compare(round_id)
 
 
 # --------------------------------------------------------------------------- #
