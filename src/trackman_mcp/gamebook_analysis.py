@@ -54,3 +54,28 @@ def scoring_from_holes(holes: list[dict[str, Any]]) -> dict[str, Any]:
         if diffs
     }
     return {"to_par": to_par, "distribution": distribution, "by_par_type": by_par_type}
+
+
+def self_check(record: dict[str, Any]) -> list[str]:
+    """Validate a read using GameBook's internal redundancy. Empty == consistent.
+
+    Checks: hole scores sum to gross; hole pars sum to course par; hole count is
+    9 or 18. A non-empty return means the extractor should re-check those holes
+    with the user before saving.
+    """
+    problems: list[str] = []
+    holes = record.get("holes") or []
+    if len(holes) not in (9, 18):
+        problems.append(f"expected 9 or 18 holes, got {len(holes)}")
+
+    gross = sum(int(h["score"]) for h in holes)
+    stated_gross = (record.get("result") or {}).get("gross")
+    if stated_gross is not None and gross != int(stated_gross):
+        problems.append(f"hole scores sum to {gross} but stated gross is {stated_gross}")
+
+    par_total = sum(int(h["par"]) for h in holes)
+    course_par = (record.get("course") or {}).get("par")
+    if course_par is not None and par_total != int(course_par):
+        problems.append(f"hole pars sum to {par_total} but course par is {course_par}")
+
+    return problems
