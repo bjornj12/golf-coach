@@ -1,8 +1,12 @@
-# Trackman Golf MCP
+# Golf Coach
 
 ## Project Overview
 
-**Name**: Trackman Golf MCP (working name)
+**Name**: Golf Coach (product name). The technical ids stay `trackman-golf` (MCP
+server / plugin) and `trackman-mcp` (published package / module `trackman_mcp`) —
+these are deliberately NOT renamed, so existing installs and the registry entry
+keep working. "Trackman" references to the *data source* also stay (it genuinely
+connects to Trackman).
 
 **Purpose**: A Model Context Protocol (MCP) server that connects to Trackman's
 golf platform using the user's own login, fetches their stats (course rounds,

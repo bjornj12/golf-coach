@@ -1,12 +1,19 @@
 <!-- mcp-name: io.github.bjornj12/trackman-mcp -->
 
-# trackman-mcp
+# Golf Coach
 
-An MCP server that logs into **Trackman Golf** with your own account and exposes
-your stats — course rounds, practice sessions, shot-level launch-monitor data,
-club gapping, and handicap — as MCP tools. On top of that, a set of Claude
-**skills** act as your golf coach: they diagnose your weaknesses and hand you a
-specific practice plan with drills and YouTube links for your next session.
+**A golf coach that trains you purely on your stats — round after round, closer to scratch.**
+
+Golf Coach logs into **Trackman Golf** with your own account and turns your
+stats — course rounds, practice sessions, shot-level launch-monitor data, club
+gapping, and handicap — into a diagnosis of where you're losing strokes, then
+hands you a specific practice plan with drills and YouTube links for your next
+session and grades your progress over time. It ships as an MCP server (the data
+tools) plus Claude **skills** (the coaching brain).
+
+> **Name note.** "Golf Coach" is the product name. The technical ids stay
+> `trackman-golf` (MCP server / plugin) and `trackman-mcp` (the published
+> package), so existing installs keep working.
 
 > [!IMPORTANT]
 > **Unofficial.** This project is not affiliated with or endorsed by Trackman.

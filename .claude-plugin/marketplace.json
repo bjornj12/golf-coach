@@ -2,14 +2,14 @@
   "name": "trackman-golf",
   "owner": { "name": "Bjorn Jonsson", "email": "bjorn@avo.sh" },
   "metadata": {
-    "description": "Single-plugin marketplace for the Trackman Golf MCP + coaching skills.",
+    "description": "Single-plugin marketplace for Golf Coach — the trackman-golf MCP + coaching skills.",
     "version": "0.4.0"
   },
   "plugins": [
     {
       "name": "trackman-golf",
       "source": "./",
-      "description": "Trackman Golf MCP server (stats as MCP tools) plus the coaching skills."
+      "description": "Golf Coach: the trackman-golf MCP server (stats as MCP tools) plus the coaching skills."
     }
   ]
 }
