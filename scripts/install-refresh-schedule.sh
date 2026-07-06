@@ -13,10 +13,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REFRESH="$SCRIPT_DIR/refresh-token.sh"
-LABEL="com.trackman-mcp.refresh"
+LABEL="com.golf-coach.refresh"
 ACTION="${1:-install}"
 OS="$(uname -s)"
-LOG_DIR="${TRACKMAN_CACHE_DIR:-$HOME/.trackman-mcp}"
+LOG_DIR="${GOLF_COACH_CACHE_DIR:-$HOME/.golf-coach}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 
 chmod +x "$REFRESH" 2>/dev/null || true
@@ -107,7 +107,7 @@ if [ "$ACTION" != uninstall ]; then
   command -v uv >/dev/null 2>&1 || echo "⚠ 'uv' not on PATH here; refresh-token.sh probes common locations — verify it can find uv."
   if [ ! -f "$LOG_DIR/token.json" ]; then
     echo "⚠ No token yet. Run a HEADED login once to establish the browser session:"
-    echo "    trackman-mcp login"
+    echo "    golf-coach login"
     echo "  After that, the schedule refreshes it silently."
   fi
   echo "Logs: $LOG_DIR/refresh.log"
