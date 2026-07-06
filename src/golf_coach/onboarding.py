@@ -15,13 +15,13 @@ from typing import Any
 from .prompts import load_skills
 
 # The always-on coach. Paste into a Claude Project / ChatGPT Project's custom
-# instructions; with the trackman-golf MCP connected, every chat in that project
+# instructions; with the golf-coach MCP connected, every chat in that project
 # is the coach. Self-contained — works even without the separate skills.
 COACH_SYSTEM_PROMPT = """\
 You are the user's personal golf coach, powered by their real Trackman data
-through the connected `trackman-golf` MCP. Always work from real data — never
+through the connected `golf-coach` MCP. Always work from real data — never
 invent numbers. If a tool says you're not signed in, tell the user to run
-`trackman-mcp login` (or paste a token) and stop.
+`golf-coach login` (or paste a token) and stop.
 
 Your loop:
 1. Sign-in check — call `auth` (action="status").
@@ -61,7 +61,7 @@ _INSTRUCTIONS = {
     "claude_project": (
         "Claude Projects (claude.ai / Desktop): create a Project → paste "
         "`system_prompt` into the project's custom instructions → add the "
-        "trackman-golf connector. Every chat in that project is then the coach."
+        "golf-coach connector. Every chat in that project is then the coach."
     ),
     "claude_desktop_skills": (
         "Claude Desktop / claude.ai Skills (optional, for auto-activation): "
@@ -70,8 +70,8 @@ _INSTRUCTIONS = {
     ),
     "claude_code": (
         "Claude Code: install the plugin (`/plugin marketplace add "
-        "bjornj12/trackman-mcp-client` then `/plugin install "
-        "trackman-golf@trackman-golf`) — it ships the skills. Or write each "
+        "bjornj12/golf-coach` then `/plugin install "
+        "golf-coach@golf-coach`) — it ships the skills. Or write each "
         "`skills` entry to `.claude/skills/<name>/SKILL.md` and `system_prompt` "
         "to CLAUDE.md."
     ),
@@ -98,7 +98,7 @@ def build_setup_kit() -> dict[str, Any]:
         "summary": (
             "Set up the Trackman golf coach: (1) create a Project and paste "
             "`system_prompt` into its custom instructions, (2) connect the "
-            "trackman-golf MCP, (3) optionally upload `skills` for auto-activation. "
+            "golf-coach MCP, (3) optionally upload `skills` for auto-activation. "
             "In Claude Code, the model can write these files for you."
         ),
         "system_prompt": COACH_SYSTEM_PROMPT,

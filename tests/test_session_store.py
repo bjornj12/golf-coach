@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from trackman_mcp import session_store
+from golf_coach import session_store
 
 
 @pytest.fixture(autouse=True)
 def _isolate(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
 
 
 def _rec(session_id: str, time: str, kind: str = "RANGE_PRACTICE") -> dict:

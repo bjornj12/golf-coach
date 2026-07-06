@@ -1,6 +1,6 @@
 # Publishing
 
-`trackman-mcp` ships through three channels. The PyPI release is automated via
+`golf-coach` ships through three channels. The PyPI release is automated via
 GitHub Actions + PyPI **Trusted Publishing** (OIDC) — no API token is ever
 stored. You authorize the workflow once on PyPI, then every `vX.Y.Z` tag
 publishes.
@@ -14,9 +14,9 @@ Because the project doesn't exist on PyPI yet, use the **pending publisher** flo
 
    | Field | Value |
    |-------|-------|
-   | PyPI Project Name | `trackman-mcp` |
+   | PyPI Project Name | `golf-coach` |
    | Owner | `bjornj12` |
-   | Repository name | `trackman-mcp-client` |
+   | Repository name | `golf-coach` |
    | Workflow name | `publish.yml` |
    | Environment name | `pypi` |
 
@@ -65,7 +65,7 @@ git tag vX.Y.Z && git push origin vX.Y.Z   # then approve the `pypi` deployment
 After the workflow succeeds, anyone can:
 
 ```bash
-uvx trackman-mcp            # or: uv tool install trackman-mcp / pipx install trackman-mcp
+uvx golf-coach            # or: uv tool install golf-coach / pipx install golf-coach
 ```
 
 ## Manual publish (fallback)

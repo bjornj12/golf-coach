@@ -77,7 +77,7 @@ def _validate_endpoint(endpoint: str, has_token: bool) -> None:
         )
     if endpoint != GRAPHQL_ENDPOINT:
         print(
-            f"trackman-mcp: using non-default GraphQL endpoint {endpoint!r}.",
+            f"golf-coach: using non-default GraphQL endpoint {endpoint!r}.",
             file=sys.stderr,
         )
 

@@ -11,7 +11,7 @@ into the conversation.
 ## Workflow
 
 1. **Auth.** `auth(action="status")`. If not authenticated, tell the user to run
-   `trackman-mcp login` and stop — don't fabricate data.
+   `golf-coach login` and stop — don't fabricate data.
 2. **Recent sessions.** `list_sessions` with `take: 30` (newest first) — practice
    and rounds.
 3. **What's already stored.** `session_analysis(action="list")` for stored ids.

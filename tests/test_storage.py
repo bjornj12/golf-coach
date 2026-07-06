@@ -6,7 +6,7 @@ import json
 import os
 import stat
 
-from trackman_mcp import storage
+from golf_coach import storage
 
 
 def test_write_secure_works_without_fchmod(tmp_path, monkeypatch):

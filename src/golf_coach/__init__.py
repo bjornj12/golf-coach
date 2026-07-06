@@ -8,6 +8,6 @@ from importlib.metadata import PackageNotFoundError, version
 
 try:
     # Single source of truth: the installed distribution's version (pyproject).
-    __version__ = version("trackman-mcp")
+    __version__ = version("golf-coach")
 except PackageNotFoundError:  # pragma: no cover - source tree without an install
     __version__ = "0+unknown"

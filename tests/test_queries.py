@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from trackman_mcp import queries
+from golf_coach import queries
 
 
 def test_session_measurements_covers_range_activities():

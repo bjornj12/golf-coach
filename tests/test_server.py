@@ -11,9 +11,9 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from trackman_mcp import server
-from trackman_mcp.client import TrackmanClient
-from trackman_mcp.config import Config
+from golf_coach import server
+from golf_coach.client import TrackmanClient
+from golf_coach.config import Config
 
 
 @pytest.fixture
@@ -122,7 +122,7 @@ async def test_get_activity_summary(patch_transport):
 
 async def test_auth_status_without_token(monkeypatch, tmp_path):
     monkeypatch.delenv("TRACKMAN_TOKEN", raising=False)
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))  # empty cache
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))  # empty cache
     result = await server.auth(action="status")
     assert result["authenticated"] is False
 
@@ -151,7 +151,7 @@ async def test_auth_status_success_never_echoes_token(monkeypatch):
 
 
 async def test_session_analysis_analyze_and_list(patch_transport, monkeypatch, tmp_path):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
     patch_transport({"node": {
         "__typename": "RangePracticeActivity", "kind": "RANGE_PRACTICE",
         "time": "2026-06-01T10:00:00Z",
@@ -171,7 +171,7 @@ async def test_session_analysis_analyze_requires_id():
 
 
 async def test_training_plan_lifecycle(monkeypatch, tmp_path):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
     saved = await server.training_plan(action="save",
                                        plan={"title": "Driver path", "focus": ["slice"]})
     pid = saved["id"]

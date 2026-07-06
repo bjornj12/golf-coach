@@ -1,13 +1,13 @@
 # Trackman Stats Analysis
 
-Pull the user's Trackman data via the `trackman-golf` MCP tools and produce an
+Pull the user's Trackman data via the `golf-coach` MCP tools and produce an
 honest, specific **diagnosis** of where they're losing strokes. This is analysis
 only — for a drill plan, use the **golf-coaching** prompt.
 
 ## Gather
 
 Run `auth(action="status")` first; if it reports expired/not signed in, tell the
-user to run `trackman-mcp login` and stop (don't invent numbers). Then:
+user to run `golf-coach login` and stop (don't invent numbers). Then:
 
 - `get_profile` → current handicap.
 - `get_handicap` → handicap trend.

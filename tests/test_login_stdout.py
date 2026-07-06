@@ -10,7 +10,7 @@ from __future__ import annotations
 import inspect
 import re
 
-from trackman_mcp import login
+from golf_coach import login
 
 
 def test_log_writes_to_stderr_not_stdout(capsys):

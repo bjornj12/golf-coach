@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from trackman_mcp import login as login_mod
-from trackman_mcp import server
-from trackman_mcp.client import TrackmanAuthError
+from golf_coach import login as login_mod
+from golf_coach import server
+from golf_coach.client import TrackmanAuthError
 
 
 @pytest.fixture(autouse=True)
 def _isolate(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
     monkeypatch.delenv("TRACKMAN_TOKEN", raising=False)
 
 
@@ -38,7 +38,7 @@ async def test_run_retries_after_refresh(monkeypatch):
             raise TrackmanAuthError("expired")
         return {"ok": True}
 
-    monkeypatch.setattr("trackman_mcp.client.TrackmanClient.execute", fake_execute)
+    monkeypatch.setattr("golf_coach.client.TrackmanClient.execute", fake_execute)
 
     async def refreshed():
         return True
@@ -52,7 +52,7 @@ async def test_run_retries_after_refresh(monkeypatch):
 async def test_run_raises_when_refresh_fails(monkeypatch):
     async def always_auth_error(self, query, variables=None):
         raise TrackmanAuthError("expired")
-    monkeypatch.setattr("trackman_mcp.client.TrackmanClient.execute", always_auth_error)
+    monkeypatch.setattr("golf_coach.client.TrackmanClient.execute", always_auth_error)
 
     async def no_refresh():
         return False
@@ -80,7 +80,7 @@ async def test_login_action_success_path(monkeypatch):
 
     async def fake_whoami(self):
         return {"name": "Pat Golfer", "sub": "s1"}
-    monkeypatch.setattr("trackman_mcp.client.TrackmanClient.whoami", fake_whoami)
+    monkeypatch.setattr("golf_coach.client.TrackmanClient.whoami", fake_whoami)
 
     res = await server.auth(action="login")
     assert res["success"] is True

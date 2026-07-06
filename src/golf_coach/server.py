@@ -5,8 +5,8 @@ skills as MCP prompts. The server ONLY fetches/returns raw data and runs the
 deterministic analytics — coaching *judgment* lives in the skills (now delivered
 as prompts). See CLAUDE.md.
 
-Run:  trackman-mcp           (stdio transport)
-Auth: run `trackman-mcp login` (browser) or set TRACKMAN_TOKEN. See README.
+Run:  golf-coach           (stdio transport)
+Auth: run `golf-coach login` (browser) or set TRACKMAN_TOKEN. See README.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from .client import TrackmanAuthError, TrackmanClient
 from .config import Config
 
 mcp = FastMCP(
-    name="trackman-golf",
+    name="golf-coach",
     instructions=(
         "Fetches the signed-in user's Trackman Golf statistics: profile and "
         "handicap, practice/course sessions, scorecards, shot-level launch "
@@ -124,7 +124,7 @@ async def _auth_login(open_browser: bool) -> dict[str, Any]:
                 "success": False,
                 "message": "Saved session expired and open_browser is false. "
                            "Call auth(action='login', open_browser=true), or run "
-                           "`trackman-mcp login` in a terminal.",
+                           "`golf-coach login` in a terminal.",
             }
         try:
             await capture_token(headless=False)
@@ -700,14 +700,14 @@ def main() -> None:
     """Console-script entry point.
 
     Usage:
-        trackman-mcp                 run the MCP server (stdio)
-        trackman-mcp login           open a browser to sign in and cache a token
-        trackman-mcp login --headless  silently refresh using the saved session
+        golf-coach                 run the MCP server (stdio)
+        golf-coach login           open a browser to sign in and cache a token
+        golf-coach login --headless  silently refresh using the saved session
     """
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(prog="trackman-mcp")
+    parser = argparse.ArgumentParser(prog="golf-coach")
     sub = parser.add_subparsers(dest="command")
     login = sub.add_parser("login", help="Capture a Trackman token via a browser.")
     login.add_argument(

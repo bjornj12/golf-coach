@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from importlib.metadata import version
 
-import trackman_mcp
+import golf_coach
 
 
 def test_version_matches_distribution_metadata():
-    assert trackman_mcp.__version__ == version("trackman-mcp")
+    assert golf_coach.__version__ == version("golf-coach")

@@ -11,7 +11,7 @@ import re
 
 import pytest
 
-from trackman_mcp.visualize import build_html
+from golf_coach.visualize import build_html
 
 
 def test_build_html_is_self_contained_and_nonempty():
@@ -70,7 +70,7 @@ def test_swing_path_not_mirrored_for_right_handers():
 
 
 def test_demo_data_renders():
-    from trackman_mcp import visualize
+    from golf_coach import visualize
     html = build_html(visualize._DEMO)
     assert "<canvas" in html
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastmcp import FastMCP
 
-from trackman_mcp import prompts
+from golf_coach import prompts
 
 USER_FACING = {
     "golf-coaching",
@@ -55,7 +55,7 @@ def test_served_prompts_have_no_claude_code_only_language():
 
 
 async def test_server_exposes_skill_prompts():
-    from trackman_mcp import server
+    from golf_coach import server
     names = {p.name for p in await server.mcp.list_prompts()}
     assert USER_FACING <= names
     assert "trackman-api-discovery" not in names
@@ -64,7 +64,7 @@ async def test_server_exposes_skill_prompts():
 async def test_skill_prompts_take_no_arguments():
     # Skill prompts are static instructions — they must expose NO inputs, or the
     # client (e.g. Claude Desktop) pops up a "fill in the arguments" dialog.
-    from trackman_mcp import server
+    from golf_coach import server
     for p in await server.mcp.list_prompts():
         args = getattr(p, "arguments", None) or []
         assert args == [], f"{p.name} exposes unexpected arguments: {[a.name for a in args]}"
@@ -72,7 +72,7 @@ async def test_skill_prompts_take_no_arguments():
 
 async def test_skill_prompt_renders_its_body():
     # And invoking it returns the skill text (not empty).
-    from trackman_mcp import server
+    from golf_coach import server
     result = await (await server.mcp.get_prompt("golf-coaching")).render()
     text = result.messages[0].content.text
     assert len(text) > 500

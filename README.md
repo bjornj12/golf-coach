@@ -1,4 +1,4 @@
-<!-- mcp-name: io.github.bjornj12/trackman-mcp -->
+<!-- mcp-name: io.github.bjornj12/golf-coach -->
 
 # Golf Coach
 
@@ -12,7 +12,7 @@ session and grades your progress over time. It ships as an MCP server (the data
 tools) plus Claude **skills** (the coaching brain).
 
 > **Name note.** "Golf Coach" is the product name. The technical ids stay
-> `trackman-golf` (MCP server / plugin) and `trackman-mcp` (the published
+> `golf-coach` (MCP server / plugin) and `golf-coach` (the published
 > package), so existing installs keep working.
 
 > [!IMPORTANT]
@@ -36,7 +36,7 @@ one-time [Authentication](#authentication-one-time) step.
 
 ### 🖥️ Claude Desktop — one-click (recommended, no terminal)
 
-1. **Download [`trackman-golf.mcpb`](https://github.com/bjornj12/trackman-mcp-client/releases/latest/download/trackman-golf.mcpb)** (from the [latest release](https://github.com/bjornj12/trackman-mcp-client/releases/latest)).
+1. **Download [`golf-coach.mcpb`](https://github.com/bjornj12/golf-coach/releases/latest/download/golf-coach.mcpb)** (from the [latest release](https://github.com/bjornj12/golf-coach/releases/latest)).
 2. Open **Claude Desktop → Settings → Extensions**, drag the file in (or
    double-click it), and click **Install**. Leave the token field **blank**.
 3. In a chat, say **"log in to Trackman"** → a **browser window opens** → sign in
@@ -58,8 +58,8 @@ re-run the in-app "log in to Trackman" when the ~7-day token lapses.
 ### ⌨️ Claude Code — plugin (server **and** coaching skills)
 
 ```text
-/plugin marketplace add bjornj12/trackman-mcp-client
-/plugin install trackman-golf@trackman-golf
+/plugin marketplace add bjornj12/golf-coach
+/plugin install golf-coach@golf-coach
 ```
 
 Installs the MCP server (run via `uvx`) and all six coaching skills.
@@ -72,7 +72,7 @@ Add this to your client's MCP config:
 ```json
 {
   "mcpServers": {
-    "trackman-golf": { "command": "uvx", "args": ["trackman-mcp"] }
+    "golf-coach": { "command": "uvx", "args": ["golf-coach"] }
   }
 }
 ```
@@ -92,16 +92,16 @@ stored by the tool, and nothing leaves your machine.
 ### Easiest — just ask Claude to log in (Claude Desktop / Claude Code)
 
 Say **"log in to Trackman."** A browser window opens (an isolated profile, not
-your normal Chrome); sign in once. The token caches at `~/.trackman-mcp/token.json`
+your normal Chrome); sign in once. The token caches at `~/.golf-coach/token.json`
 (mode `0600`) and the MCP uses it automatically from then on. No terminal, no
 token to copy — the extension fetches a browser itself if you don't have one.
 
 ### Terminal alternative (CLI users)
 
 ```bash
-uv tool install "trackman-mcp[login]"
-trackman-mcp login              # opens a browser; sign in once
-trackman-mcp login --headless   # silent refresh later (tokens last ~7 days)
+uv tool install "golf-coach[login]"
+golf-coach login              # opens a browser; sign in once
+golf-coach login --headless   # silent refresh later (tokens last ~7 days)
 scripts/install-refresh-schedule.sh   # optional: auto-refresh twice weekly
 ```
 
@@ -171,7 +171,7 @@ The skills under [`skills/`](./skills) are delivered two ways:
 ```bash
 uv venv && uv pip install -e '.[login,dev]'   # [login] = Playwright, [dev] = test/lint tools
 
-trackman-mcp                       # run the MCP server (stdio)
+golf-coach                       # run the MCP server (stdio)
 uv run python scripts/validate.py  # sanity-check stats coverage with your token
 
 uv run pytest        # tests

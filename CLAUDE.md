@@ -2,8 +2,8 @@
 
 ## Project Overview
 
-**Name**: Golf Coach (product name). The technical ids stay `trackman-golf` (MCP
-server / plugin) and `trackman-mcp` (published package / module `trackman_mcp`) —
+**Name**: Golf Coach (product name). The technical ids stay `golf-coach` (MCP
+server / plugin) and `golf-coach` (published package / module `golf_coach`) —
 these are deliberately NOT renamed, so existing installs and the registry entry
 keep working. "Trackman" references to the *data source* also stay (it genuinely
 connects to Trackman).
@@ -115,7 +115,7 @@ files, and per-client instructions. A matching `setup` MCP prompt drives it.
 These persist and serve a per-session *analysis*. The analytics are
 **deterministic** (in `analysis.py`) — classification and measurement, not
 coaching. Coaching narrative still lives in the skills. The store is JSON at
-`~/.trackman-mcp/session-analyses.json`, capped at the **last 30**, latest first.
+`~/.golf-coach/session-analyses.json`, capped at the **last 30**, latest first.
 
 One tool, `session_analysis(action, activity_id?)`:
 
@@ -135,7 +135,7 @@ or is a focused kind (shot analysis, find-my-distance, sim/virtual-range, etc.);
 ### Training-plan tools (the coach's memory)
 
 The coach saves prescribed practice sessions so they can be recalled later
-("what's today's training?"). Store is JSON at `~/.trackman-mcp/training-plans.json`
+("what's today's training?"). Store is JSON at `~/.golf-coach/training-plans.json`
 (`training_store.py`), an ordered queue capped at the most recent 50.
 
 One tool, `training_plan(action, plan?, plan_id?, status?, activity_id?, result_session_id?)`:
@@ -162,7 +162,7 @@ target is met).
 
 The `gamebook-screenshot-analysis` skill extracts an on-course round from Golf
 GameBook screenshots and saves it here so the coach can track scoring across
-recent rounds. Store is JSON at `~/.trackman-mcp/gamebook-rounds.json`
+recent rounds. Store is JSON at `~/.golf-coach/gamebook-rounds.json`
 (`gamebook_store.py`), a rolling window of the **last 5** rounds, keyed by `id`.
 
 One tool, `gamebook_round(action, round?, round_id?)`:
@@ -192,10 +192,10 @@ action opens a sign-in window (falling back from a fast silent attempt).
 
 **Getting the token** — two paths (`Config.from_env`: `TRACKMAN_TOKEN` env wins,
 else the cached token):
-- **Browser login (recommended)**: `trackman-mcp login` opens an isolated
+- **Browser login (recommended)**: `golf-coach login` opens an isolated
   Playwright browser; the user signs in once; the token is captured from the
-  GraphQL traffic and cached at `~/.trackman-mcp/token.json` (mode `0600`). The
-  browser profile persists the session, so `trackman-mcp login --headless`
+  GraphQL traffic and cached at `~/.golf-coach/token.json` (mode `0600`). The
+  browser profile persists the session, so `golf-coach login --headless`
   refreshes silently with no re-login (cron-friendly). Code: `login.py`,
   `token_store.py`. Playwright is the optional `[login]` extra.
 - **Manual**: set `TRACKMAN_TOKEN` from a captured portal session (`.env.example`).
@@ -227,7 +227,7 @@ Treat the user's Trackman login as sensitive. **Non-negotiable:**
 ## Project Structure (target, once Phase 1 begins)
 
 ```
-trackman-mcp-client/
+golf-coach/
 ├── CLAUDE.md                      # this file
 ├── README.md
 ├── pyproject.toml
@@ -236,7 +236,7 @@ trackman-mcp-client/
 ├── docs/
 │   └── trackman-api.md            # discovered endpoints (Phase 0 output)
 ├── src/
-│   └── trackman_mcp/
+│   └── golf_coach/
 │       ├── __init__.py
 │       ├── server.py              # FastMCP app + tool registration
 │       ├── client.py              # Trackman HTTP client + auth/session

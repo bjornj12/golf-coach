@@ -5,12 +5,12 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from trackman_mcp.client import (
+from golf_coach.client import (
     TrackmanAuthError,
     TrackmanClient,
     TrackmanGraphQLError,
 )
-from trackman_mcp.config import Config
+from golf_coach.config import Config
 
 
 def _config(token: str | None = "test-token") -> Config:
@@ -26,7 +26,7 @@ def test_config_strips_bearer_prefix(monkeypatch):
 
 def test_config_no_token(monkeypatch, tmp_path):
     monkeypatch.delenv("TRACKMAN_TOKEN", raising=False)
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))  # empty cache
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))  # empty cache
     cfg = Config.from_env()
     assert cfg.token is None
     assert not cfg.has_token
@@ -35,10 +35,10 @@ def test_config_no_token(monkeypatch, tmp_path):
 def test_config_falls_back_to_cached_token(monkeypatch, tmp_path):
     import time
 
-    from trackman_mcp import token_store
+    from golf_coach import token_store
 
     monkeypatch.delenv("TRACKMAN_TOKEN", raising=False)
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
     # A token whose exp is in the future should be picked up.
     import base64
     import json

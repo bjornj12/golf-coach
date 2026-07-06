@@ -8,8 +8,8 @@ import time
 
 import pytest
 
-from trackman_mcp import token_store
-from trackman_mcp.config import Config
+from golf_coach import token_store
+from golf_coach.config import Config
 
 
 def _jwt(exp: int) -> str:
@@ -20,7 +20,7 @@ def _jwt(exp: int) -> str:
 
 @pytest.fixture(autouse=True)
 def _isolate(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
     monkeypatch.delenv("TRACKMAN_TOKEN", raising=False)
     monkeypatch.delenv("TRACKMAN_GRAPHQL_ENDPOINT", raising=False)
 

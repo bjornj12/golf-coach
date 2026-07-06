@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from trackman_mcp import onboarding, server
+from golf_coach import onboarding, server
 
 
 def test_setup_kit_shape():

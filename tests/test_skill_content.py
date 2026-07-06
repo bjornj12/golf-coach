@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from trackman_mcp import prompts
+from golf_coach import prompts
 
 
 def _body(name: str) -> str:

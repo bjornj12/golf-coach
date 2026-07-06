@@ -1,6 +1,6 @@
 {
   "manifest_version": "0.4",
-  "name": "trackman-golf",
+  "name": "golf-coach",
   "display_name": "Golf Coach",
   "version": "0.4.0",
   "description": "A golf coach powered by your own Trackman stats — handicap, rounds, practice, shot data, club gapping — turned into a practice plan.",
@@ -9,9 +9,9 @@
     "name": "Bjorn Jonsson",
     "email": "bjorn@avo.sh"
   },
-  "homepage": "https://github.com/bjornj12/trackman-mcp-client",
-  "documentation": "https://github.com/bjornj12/trackman-mcp-client#readme",
-  "support": "https://github.com/bjornj12/trackman-mcp-client/issues",
+  "homepage": "https://github.com/bjornj12/golf-coach",
+  "documentation": "https://github.com/bjornj12/golf-coach#readme",
+  "support": "https://github.com/bjornj12/golf-coach/issues",
   "icon": "icon.png",
   "server": {
     "type": "uv",

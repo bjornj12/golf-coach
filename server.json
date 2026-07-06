@@ -1,23 +1,23 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.bjornj12/trackman-mcp",
+  "name": "io.github.bjornj12/golf-coach",
   "description": "Golf Coach: a golf coach powered by your own Trackman stats — handicap, rounds, shots, and club gapping — exposed as MCP tools to diagnose and coach from.",
   "version": "0.4.0",
   "repository": {
-    "url": "https://github.com/bjornj12/trackman-mcp-client",
+    "url": "https://github.com/bjornj12/golf-coach",
     "source": "github"
   },
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
-      "identifier": "trackman-mcp",
+      "identifier": "golf-coach",
       "version": "0.4.0",
       "transport": { "type": "stdio" },
       "environmentVariables": [
         {
           "name": "TRACKMAN_TOKEN",
-          "description": "Bearer access token captured from an authenticated Trackman portal session. Optional if you have run `trackman-mcp login` (the server then loads the cached token automatically).",
+          "description": "Bearer access token captured from an authenticated Trackman portal session. Optional if you have run `golf-coach login` (the server then loads the cached token automatically).",
           "isRequired": false,
           "isSecret": true
         }

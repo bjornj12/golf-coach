@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from trackman_mcp import training_store
+from golf_coach import training_store
 
 
 @pytest.fixture(autouse=True)
 def _isolate(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
 
 
 def _plan(title: str, created_at: int, status: str = "pending", plan_id=None) -> dict:

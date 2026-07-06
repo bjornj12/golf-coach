@@ -61,7 +61,7 @@ Have the subagent return ONLY a compact data bundle (no raw shot dumps):
 - recent scoring leaks.
 
 If the subagent reports it isn't authenticated, tell the user to run
-`trackman-mcp login`, then stop. Never fabricate numbers.
+`golf-coach login`, then stop. Never fabricate numbers.
 
 ## Step 2 — Diagnose (how he's doing + where the gaps are)
 
