@@ -23,6 +23,7 @@ from ...model import (
     TRACKMAN_CONTEXT,
     ClubGapping,
     Course,
+    Coverage,
     Finding,
     Handicap,
     Hole,
@@ -98,7 +99,7 @@ class TrackmanSource:
 
         stat = sc.get("stat") or {}
         dimensions: dict[str, Metric] = {}
-        coverage: dict[str, str] = {}
+        coverage: dict[str, Coverage] = {}
 
         if stat.get("numberOfPutts") is not None:
             dimensions["putts"] = Metric(

@@ -131,10 +131,11 @@ def compare_rounds(latest: dict[str, Any], priors: list[dict[str, Any]]) -> dict
         "comparable": {},
     }
     ls = latest["scoring"]
-    out["scoring"]["to_par"] = _delta_block(
-        "to_par", float(ls["to_par"]),
-        _mean([float(p["scoring"]["to_par"]) for p in priors]),
-    )
+    to_par_mean = _mean([float(p["scoring"]["to_par"]) for p in priors])
+    if to_par_mean is not None:
+        out["scoring"]["to_par"] = _delta_block(
+            "to_par", float(ls["to_par"]), to_par_mean
+        )
     for k in ("par3", "par4", "par5"):
         lv = ls["by_par_type"].get(k)
         pv = _mean([p["scoring"]["by_par_type"][k] for p in priors
@@ -151,9 +152,11 @@ def compare_rounds(latest: dict[str, Any], priors: list[dict[str, Any]]) -> dict
         def pph(r: dict[str, Any]) -> float:
             d = r["dimensions"]["putts"]
             return round(d["total"] / max(d["holes_tracked"], 1), 2)
-        out["dimensions"]["putts_per_hole"] = _delta_block(
-            "putts_per_hole", pph(latest), _mean([pph(p) for p in priors])
-        )
+        pph_mean = _mean([pph(p) for p in priors])
+        if pph_mean is not None:
+            out["dimensions"]["putts_per_hole"] = _delta_block(
+                "putts_per_hole", pph(latest), pph_mean
+            )
     else:
         out["dimensions"]["putts_per_hole"] = {"skipped": "coverage"}
 
