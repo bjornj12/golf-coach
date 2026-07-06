@@ -420,3 +420,144 @@ async def test_club_gapping_returns_none_when_no_clubs():
     source = TrackmanSource()
     source._fetch = _fake_fetch({"ClubStats": {"me": {"equipment": {"clubs": []}}}})
     assert await source.club_gapping() is None
+
+
+# --------------------------------------------------------------------------- #
+# analyze() — shot-level enrichment (`_recent_practice_shots`)
+# --------------------------------------------------------------------------- #
+
+
+# List has 3 RANGE_PRACTICE candidates (p1, p2, p3) plus a COURSE_PLAY game
+# (g1). With the default limit of 2, only the two newest practice candidates
+# should ever have their per-session detail fetched — never the game, never p3.
+ENRICH_LIST_RESPONSE = {
+    "me": {
+        "activities": {
+            "totalCount": 4,
+            "pageInfo": {"hasNextPage": False},
+            "items": [
+                {"id": "p1", "time": "2026-07-03T09:00:00Z", "kind": "RANGE_PRACTICE",
+                 "isHidden": False, "numberOfStrokes": 2, "clubs": ["Driver"]},
+                {"id": "g1", "time": "2026-07-02T09:00:00Z", "kind": "COURSE_PLAY",
+                 "isHidden": False, "grossScore": 88, "toPar": 16},
+                {"id": "p2", "time": "2026-07-01T09:00:00Z", "kind": "RANGE_PRACTICE",
+                 "isHidden": False, "numberOfStrokes": 1, "clubs": ["Pitching Wedge"]},
+                {"id": "p3", "time": "2026-06-30T09:00:00Z", "kind": "RANGE_PRACTICE",
+                 "isHidden": False, "numberOfStrokes": 3, "clubs": ["7 Iron"]},
+            ],
+        }
+    }
+}
+
+DRIVER_STROKES = [
+    {"time": "2026-07-03T09:00:00Z", "club": "Driver",
+     "measurement": {"totalSide": 8.0, "carrySide": 7.0, "curve": 5.0,
+                     "carry": 240.0, "total": 255.0, "ballSpeed": 68.0,
+                     "clubSpeed": 46.0, "smashFactor": 1.48}},
+    {"time": "2026-07-03T09:05:00Z", "club": "Driver",
+     "measurement": {"totalSide": -3.0, "curve": -2.0, "carry": 235.0}},
+]
+WEDGE_STROKES = [
+    {"time": "2026-07-01T09:00:00Z", "club": "Pitching Wedge",
+     "measurement": {"carrySide": 2.0, "curve": 1.0, "carry": 110.0}},  # totalSide absent -> carrySide
+]
+
+_ENRICH_DETAILS = {
+    "p1": {"__typename": "RangePracticeActivity", "id": "p1",
+           "time": "2026-07-03T09:00:00Z", "kind": "RANGE_PRACTICE",
+           "numberOfStrokes": 2, "strokes": DRIVER_STROKES},
+    "p2": {"__typename": "RangePracticeActivity", "id": "p2",
+           "time": "2026-07-01T09:00:00Z", "kind": "RANGE_PRACTICE",
+           "numberOfStrokes": 1, "strokes": WEDGE_STROKES},
+    "p3": {"__typename": "RangePracticeActivity", "id": "p3",
+           "time": "2026-06-30T09:00:00Z", "kind": "RANGE_PRACTICE",
+           "numberOfStrokes": 3, "strokes": DRIVER_STROKES},
+}
+
+
+def _enrich_fetch(counter: list[str] | None = None):
+    """Fake `_fetch` dispatching ListSessions / GetSession(by id) / ClubStats."""
+
+    async def fetch(query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+        if "ListSessions" in query:
+            return ENRICH_LIST_RESPONSE
+        if "GetSession" in query:
+            aid = (variables or {}).get("id")
+            if counter is not None:
+                counter.append(aid)
+            return {"node": _ENRICH_DETAILS[aid]}
+        if "ClubStats" in query:
+            return {"me": {"equipment": {"clubs": []}}}
+        raise AssertionError(f"no fake response for query: {query[:60]!r}")
+
+    return fetch
+
+
+async def test_stroke_to_shot_maps_side_curve_and_metrics():
+    shot = TrackmanSource._stroke_to_shot(DRIVER_STROKES[0])
+    assert shot.club == "Driver"
+    assert shot.side == 8.0          # totalSide preferred
+    assert shot.curve == 5.0
+    assert shot.carry == 240.0
+    assert shot.total == 255.0
+    assert shot.ball_speed == 68.0
+    assert shot.club_speed == 46.0
+    assert shot.smash == 1.48
+
+
+async def test_stroke_to_shot_side_falls_back_to_carry_side():
+    shot = TrackmanSource._stroke_to_shot(WEDGE_STROKES[0])
+    assert shot.side == 2.0          # totalSide absent -> carrySide
+
+
+async def test_analyze_emits_dispersion_findings_from_enriched_sessions():
+    source = TrackmanSource()
+    source._fetch = _enrich_fetch()
+
+    findings = await source.analyze()
+
+    areas = {f.skill_area for f in findings}
+    assert "driving" in areas    # Driver shots' totalSide -> driving dispersion
+    assert "approach" in areas   # wedge shot's carrySide -> approach dispersion
+
+    dispersion = [f for f in findings if f.metric == "dispersion"]
+    assert dispersion, "expected >=1 dispersion finding from enriched shots"
+    for f in dispersion:
+        assert f.source == "trackman"
+        assert f.context == TRACKMAN_CONTEXT
+        assert f.coverage == "full"
+
+
+async def test_recent_practice_shots_fetches_detail_only_for_selected():
+    calls: list[str] = []
+    source = TrackmanSource()
+    source._fetch = _enrich_fetch(counter=calls)
+
+    sessions = await source._recent_practice_shots(limit=2)
+
+    # Only the two newest PRACTICE candidates had detail fetched — the game
+    # (g1) was excluded up front and the extra practice (p3) is beyond limit.
+    assert calls == ["p1", "p2"]
+    assert "g1" not in calls
+    assert "p3" not in calls
+    assert len(sessions) == 2
+    assert all(s.shots for s in sessions)
+    assert sessions[0].shots[0].club == "Driver"
+
+
+async def test_recent_practice_shots_empty_when_only_games():
+    only_games = {
+        "me": {"activities": {"items": [
+            {"id": "g1", "time": "2026-07-02T09:00:00Z", "kind": "COURSE_PLAY"},
+        ]}}
+    }
+
+    async def fetch(query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+        assert "GetSession" not in query, "must not fetch detail for a game"
+        if "ListSessions" in query:
+            return only_games
+        raise AssertionError(f"unexpected query: {query[:40]!r}")
+
+    source = TrackmanSource()
+    source._fetch = fetch
+    assert await source._recent_practice_shots() == []

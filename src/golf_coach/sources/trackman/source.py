@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from ... import queries
+from ...analysis import GAME_KINDS, classify_session
 from ...client import TrackmanClient
 from ...config import Config
 from ...model import (
@@ -30,6 +31,7 @@ from ...model import (
     Round,
     RoundResult,
     Session,
+    Shot,
     SourceContext,
 )
 from .. import registry
@@ -185,7 +187,9 @@ class TrackmanSource:
         items = (data.get("me") or {}).get("activities", {}).get("items") or []
         return [self._normalize_session(item) for item in items]
 
-    def _normalize_session(self, item: dict[str, Any]) -> Session:
+    def _normalize_session(
+        self, item: dict[str, Any], shots: list[Shot] | None = None
+    ) -> Session:
         metrics: dict[str, Metric] = {}
         if item.get("numberOfStrokes") is not None:
             metrics["stroke_count"] = Metric(
@@ -216,9 +220,83 @@ class TrackmanSource:
             id=str(item.get("id")),
             time=item.get("time"),
             kind=item.get("kind"),
-            shots=[],  # shot-level detail needs a per-session fetch; enrich later
+            # shots=[] on the cheap list path; `_recent_practice_shots` passes
+            # the per-session detail's mapped strokes here for the analyze path.
+            shots=shots or [],
             metrics=metrics,
         )
+
+    @staticmethod
+    def _stroke_to_shot(stroke: dict[str, Any]) -> Shot:
+        """Map one GET_SESSION stroke -> a `Shot`.
+
+        Populates the three fields `_dispersion_findings` keys on — `club`,
+        `side` (`totalSide`, falling back to `carrySide`), `curve` — plus the
+        ball/club launch metrics the detail carries. `spin` reads range kinds'
+        `ballSpin` first, then sim kinds' `spinRate`; missing fields stay None.
+        """
+        m = stroke.get("measurement") or {}
+        side = m.get("totalSide")
+        if side is None:
+            side = m.get("carrySide")
+        spin = m.get("ballSpin")
+        if spin is None:
+            spin = m.get("spinRate")
+        return Shot(
+            club=stroke.get("club"),
+            side=side,
+            curve=m.get("curve"),
+            carry=m.get("carry"),
+            total=m.get("total"),
+            ball_speed=m.get("ballSpeed"),
+            club_speed=m.get("clubSpeed"),
+            launch_angle=m.get("launchAngle"),
+            spin=spin,
+            landing_angle=m.get("landingAngle"),
+            max_height=m.get("maxHeight"),
+            hang_time=m.get("hangTime"),
+            smash=m.get("smashFactor"),
+        )
+
+    async def _recent_practice_shots(self, limit: int = 2) -> list[Session]:
+        """Recent *practice* sessions enriched with shot-level detail.
+
+        The plain `sessions()` list is deliberately shot-free (`shots=[]`) — a
+        cheap single call. This is the analyze-only enrichment: it fetches the
+        recent activities list, drops played rounds/games by `kind`, takes the
+        newest `limit` practice candidates, and only then fetches each one's
+        `GET_SESSION` detail to map strokes -> `Shot`s. Detail is fetched for at
+        most `limit` sessions, never for the whole list. Returns `[]` when no
+        practice session qualifies.
+        """
+        variables = {
+            "skip": 0,
+            "take": 15,
+            "kinds": None,
+            "timeFrom": None,
+            "timeTo": None,
+            "includeHidden": False,
+        }
+        data = await self._fetch(queries.LIST_SESSIONS, variables)
+        items = (data.get("me") or {}).get("activities", {}).get("items") or []
+
+        # Bound the per-session detail fetches: pre-filter on the cheap list
+        # data (exclude games by kind), then take at most `limit` candidates.
+        candidates = [item for item in items if item.get("kind") not in GAME_KINDS][:limit]
+
+        enriched: list[Session] = []
+        for item in candidates:
+            node = await self._fetch(queries.GET_SESSION, {"id": item.get("id")})
+            detail = node.get("node") or {}
+            if not detail:
+                continue
+            # Belt-and-suspenders: a course-play node carries a `scorecard`, so
+            # classify_session flags it as a game even if the list `kind` didn't.
+            if classify_session(detail).get("category") == "game":
+                continue
+            shots = [self._stroke_to_shot(s) for s in (detail.get("strokes") or [])]
+            enriched.append(self._normalize_session(item, shots=shots))
+        return enriched
 
     # ----------------------------------------------------------------- #
     # profile() / handicap() / club_gapping()
@@ -277,16 +355,19 @@ class TrackmanSource:
     async def analyze(self) -> list[Finding]:
         """Run the Trackman expert analyzer over this source's current data.
 
-        Deliberately does NOT fetch `sessions()` here: `sessions()` always
-        comes back with `shots=[]` (shot-level detail needs a per-session
-        fetch — see `_normalize_session`), so the analyzer would find nothing
-        from it. That's a follow-up (shot-level session enrichment); gapping
-        is the current Trackman signal, so it's the only fetch here.
+        Enriches the analyze path with shot-level detail: `_recent_practice_shots`
+        pulls the newest couple of *practice* sessions WITH their strokes mapped
+        to `Shot`s, so the analyzer emits `driving`/`approach` dispersion Findings
+        (from `Shot.side`/`club`) — the shared skill areas that let
+        `synthesize()` produce real cross-source deltas against GameBook. Club
+        `gapping` is still fetched as the shots-free carry-spread signal. The
+        plain `sessions()` list stays shot-free (cheap); enrichment is here only.
         """
         from . import analyzer as trackman_analyzer  # lazy: avoid import cycles
 
+        sessions = await self._recent_practice_shots()
         gapping = await self.club_gapping()
-        return trackman_analyzer.analyze([], club_gapping=gapping)
+        return trackman_analyzer.analyze(sessions, club_gapping=gapping)
 
 
 # Module-level singleton, registered at import time (see registry.register).
