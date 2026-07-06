@@ -1,6 +1,6 @@
 ---
 name: gamebook-screenshot-analysis
-description: Use to ingest Golf GameBook round screenshots (Round Summary + Statistics) into the coach. Extracts a coverage-aware round from the images, self-checks the read, stores it via the gamebook_round MCP tool (rolling last 5), and returns a normalized summary plus scoring-led progress vs prior rounds. Only score-per-hole is trusted; every other stat is flagged by how completely it was tracked.
+description: Use to ingest Golf GameBook round screenshots (Round Summary + Statistics) into the coach. Extracts a coverage-aware round from the images, self-checks the read, stores it via the gamebook MCP tool (rolling last 5), and returns a normalized summary plus scoring-led progress vs prior rounds. Only score-per-hole is trusted; every other stat is flagged by how completely it was tracked.
 ---
 
 # GameBook Screenshot Analysis
@@ -67,11 +67,11 @@ returns just the summary. If you are that dispatched worker, proceed.
    to course par, and there are 9 or 18 holes. If anything fails, show the user
    the holes you're unsure about and fix the read — do not save a wrong round.
 
-5. **Save** by calling `gamebook_round(action="save", round=<record>)`. The record
+5. **Save** by calling `gamebook(action="save", round=<record>)`. The record
    shape is in the tool docs; the tool computes the `scoring` block and stores it
    (rolling last 5). If it returns `saved: false`, resolve the `problems` and retry.
 
-6. **Report progress.** Call `gamebook_round(action="compare")`. Summarize the
+6. **Report progress.** Call `gamebook(action="compare")`. Summarize the
    latest round and its direction of travel vs prior rounds — **confidently on
    scoring, and on any other dimension only where `comparable` is true** — then
    hand off to `golf-coaching` for the practice prescription.

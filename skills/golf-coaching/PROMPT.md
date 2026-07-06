@@ -38,12 +38,17 @@ First `auth(action="status")`. If not authenticated, tell the user to run
 `golf-coach login` in a terminal (or paste a token) and stop — never fabricate
 numbers. Then pull:
 
-- `get_profile` + `get_handicap` → handicap and its trend.
-- `get_club_stats` → per-club gapping (avg carry/total, std-dev, dispersion).
-- `get_course_rounds` (take ~10) → scoring: FIR, GIR, putts/round, score
+- `trackman(action="profile")` + `trackman(action="handicap")` → handicap and its trend.
+- `trackman(action="clubs")` → per-club gapping (avg carry/total, std-dev, dispersion).
+- `trackman(action="rounds", take=10)` → scoring: FIR, GIR, putts/round, score
   distribution, to-par.
-- `list_sessions` (take ~15) then `get_session` on the most relevant recent
-  practice/round for shot-level detail.
+- `trackman(action="sessions", take=15)` then `trackman(action="session",
+  activity_id=...)` on the most relevant recent practice/round for shot-level
+  detail.
+- `synthesize()` → the cross-source, context-aware view: aligns the Trackman
+  findings above against any GameBook on-course rounds by skill area (Trackman
+  is clean-room/flat-lie; GameBook is on-course, real conditions), so the same
+  gap isn't double-counted across sources.
 
 For a normalized, classified view of recent sessions you can also invoke the
 **trackman-session-analyzer** prompt (it stores per-session analyses and reports
@@ -55,7 +60,10 @@ compact working set.
 - **How they're doing:** handicap direction, and latest round/practice vs their
   own average. Reality-check the practice habit — are they actually training or
   mostly warming up? Don't credit warm-ups as improvement work.
-- **Where strokes are lost — ranked by stroke impact, highest first:**
+- **Where strokes are lost — ranked by stroke impact, highest first:** read this
+  primarily off `synthesize()`'s aligned view (it already reconciles Trackman and
+  GameBook), falling back to raw `trackman` output where `synthesize` has
+  nothing yet:
   - **Gapping:** adjacent clubs overlapping (< ~8–10 m) or holes in the set
     (> ~18–20 m).
   - **Dispersion:** wide carry/side scatter, especially on scoring clubs.
@@ -134,10 +142,11 @@ re-check next time). End with one encouraging, data-tied line. Be specific:
 
 ## On-course rounds (Golf GameBook)
 
-Real course rounds live in the `gamebook_round` tool, ingested from the user's
+Real course rounds live in the `gamebook` tool, ingested from the user's
 GameBook screenshots (see the gamebook-screenshot-analysis prompt). Call
-`gamebook_round(action="compare")` to get the direction of travel across their
-last few rounds.
+`gamebook(action="compare")` to get the direction of travel across their
+last few rounds — or pull it via `synthesize()`, which already aligns it
+against the Trackman side by skill area.
 
 **Lead with scoring** — to-par, the bogey/double/triple spread, and par-type
 averages are always reliable. Speak to putts/fairways/greens **only where

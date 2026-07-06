@@ -49,10 +49,9 @@ the network panel, or have the user open DevTools → Network themselves.
    speed, spin, side, score, handicap, etc.). Note GraphQL vs REST — if it's
    GraphQL (`/graphql`), capture the query/operation names and variables.
 
-4. **Map endpoints → planned MCP tools** (`get_profile`, `list_sessions`,
-   `get_session`, `get_course_rounds`, `get_club_stats`, `get_session`).
-   Flag any planned tool that has **no** backing endpoint, and any rich endpoint
-   we should add a tool for.
+4. **Map endpoints → the MCP's `trackman` tool actions** (`profile`, `sessions`,
+   `session`, `rounds`, `clubs`). Flag any action that has **no** backing
+   endpoint, and any rich endpoint we should add an action for.
 
 5. **Write it all into `docs/trackman-api.md`** using the template already in
    that file. Replace every `TODO`. This document becomes the contract the

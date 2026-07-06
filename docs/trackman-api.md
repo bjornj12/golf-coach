@@ -94,12 +94,12 @@ login without token capture.
 
 | `me` field | Type | Tool it backs |
 |------------|------|---------------|
-| `profile` | `Profile` | `get_profile` |
-| `hcp` | `Hcp` (`currentHcp`, `currentRecord`, `playerHistory`) | `get_profile` / `get_handicap` |
-| `activities(kinds, timeFrom, timeTo, skip, take, includeHidden)` | `PlayerActivity[]` | `list_sessions`, `get_session` |
-| `scorecards(skip, take, completed, numberOfHolesToPlay)` | `Scorecard[]` | `get_course_rounds` |
-| `activitySummary(timeFrom, timeTo, …)` | `ActivitySummary[]` | `get_activity_summary` |
-| `equipment` | `AllEquipment` (`clubs`, `balls`) | `get_club_stats` |
+| `profile` | `Profile` | `trackman(action="profile")` |
+| `hcp` | `Hcp` (`currentHcp`, `currentRecord`, `playerHistory`) | `trackman(action="profile"\|"handicap")` |
+| `activities(kinds, timeFrom, timeTo, skip, take, includeHidden)` | `PlayerActivity[]` | `trackman(action="sessions"\|"session")` |
+| `scorecards(skip, take, completed, numberOfHolesToPlay)` | `Scorecard[]` | `trackman(action="rounds")` |
+| `activitySummary(timeFrom, timeTo, …)` | `ActivitySummary[]` | `trackman(action="summary")` |
+| `equipment` | `AllEquipment` (`clubs`, `balls`) | `trackman(action="clubs")` |
 | `playedWith`, `friends`, `visits`, `students`, `tournaments`, `leagues` | … | out of scope (MVP) |
 
 ### Key types (field names verbatim)
@@ -164,7 +164,7 @@ dispersion source**.
 
 ## Example queries
 
-**Profile + handicap** (`get_profile`):
+**Profile + handicap** (`trackman(action="profile")`):
 ```graphql
 query { me {
   profile { fullName email outdoorHandicap category dexterity }
@@ -172,7 +172,7 @@ query { me {
 } }
 ```
 
-**Recent sessions** (`list_sessions`):
+**Recent sessions** (`trackman(action="sessions")`):
 ```graphql
 query($skip:Int,$take:Int,$kinds:[ActivityKind!]) {
   me { activities(skip:$skip, take:$take, kinds:$kinds) {
@@ -186,7 +186,7 @@ query($skip:Int,$take:Int,$kinds:[ActivityKind!]) {
 }
 ```
 
-**Range practice shots** (`get_session` for a RANGE_PRACTICE activity):
+**Range practice shots** (`trackman(action="session")` for a RANGE_PRACTICE activity):
 ```graphql
 query($id:ID!) { node(id:$id) { ... on RangePracticeActivity {
   time numberOfStrokes
@@ -196,7 +196,7 @@ query($id:ID!) { node(id:$id) { ... on RangePracticeActivity {
 } } }
 ```
 
-**Course rounds / scorecards** (`get_course_rounds`):
+**Course rounds / scorecards** (`trackman(action="rounds")`):
 ```graphql
 query($take:Int) { me { scorecards(take:$take, completed:true) {
   id startedAt course { displayName } par grossScore toPar
@@ -206,7 +206,7 @@ query($take:Int) { me { scorecards(take:$take, completed:true) {
 } } }
 ```
 
-**Club gapping / dispersion** (`get_club_stats`):
+**Club gapping / dispersion** (`trackman(action="clubs")`):
 ```graphql
 query { me { equipment { clubs(includeRetired:false) {
   displayName clubHead { clubHeadType }
@@ -218,18 +218,26 @@ query { me { equipment { clubs(includeRetired:false) {
 
 ## Tool ↔ endpoint reconciliation
 
-| Planned tool | Backing | Notes |
-|--------------|---------|-------|
-| `authenticate` | OIDC token capture | Validates/loads `TRACKMAN_TOKEN`; not a real OAuth exchange (confidential client). |
-| `get_profile` | `me.profile` + `me.hcp` | handicap = `hcp.currentHcp` (also `profile.outdoorHandicap`). |
-| `list_sessions` | `me.activities` | Filter by `kinds`, `timeFrom/timeTo`; paged. |
-| `get_session` | `node(id)` / `me.activities` | Use inline fragments per `ActivityKind`. |
-| `get_course_rounds` | `me.scorecards` | Per-hole + `stat` aggregates. |
-| `get_club_stats` | `me.equipment.clubs.findMyDistance` | Carry/total + std-dev + dispersion = gapping. |
-| `get_shot_data` | `RangeStroke.measurement` / `ScorecardShot.measurement` | Full `Measurement` field set. |
+> Historical note: this section originally listed one planned tool per
+> endpoint (Phase 0, before the server existed). The shipped server folds all
+> of these Trackman reads into a single `trackman(action, …)` tool — the
+> `action` column below is what each row became.
 
-**New tools worth adding** (found in discovery): `get_handicap` (history via
-`hcp.playerHistory`), `get_activity_summary` (`me.activitySummary`). 
+| `trackman` action | Backing | Notes |
+|--------------|---------|-------|
+| `auth` (its own tool) | OIDC token capture | Validates/loads `TRACKMAN_TOKEN`; not a real OAuth exchange (confidential client). |
+| `profile` | `me.profile` + `me.hcp` | handicap = `hcp.currentHcp` (also `profile.outdoorHandicap`). |
+| `sessions` | `me.activities` | Filter by `kinds`, `timeFrom/timeTo`; paged. |
+| `session` | `node(id)` / `me.activities` | Use inline fragments per `ActivityKind`. |
+| `rounds` | `me.scorecards` | Per-hole + `stat` aggregates. |
+| `clubs` | `me.equipment.clubs.findMyDistance` | Carry/total + std-dev + dispersion = gapping. |
+| `session` (shot detail) | `RangeStroke.measurement` / `ScorecardShot.measurement` | Full `Measurement` field set — folded into `session` rather than a separate action. |
+| `summary` | `me.activitySummary` | Activity counts by kind over a window. |
+
+**Handicap history** (`hcp.playerHistory`) and **activity summary**
+(`me.activitySummary`) were the "new tools worth adding" this discovery
+surfaced — both now live as `trackman(action="handicap")` and
+`trackman(action="summary")`.
 
 **Units** (confirmed against a live account, 2026-06-27): metrics are **metric** —
 `ballSpeed`/`clubSpeed` in **m/s** (e.g. 43.3 m/s), `carry`/`total`/distances in
@@ -240,7 +248,7 @@ to mph/yards if the user expects imperial.
 - No local OAuth: the MCP depends on a captured Bearer token (see auth strategy).
 - "Strokes Gained" is **not** a first-class field; it must be derived in the
   analysis skill from shot/score data, not fetched.
-- `get_session` (and `get_shot_data`) currently has inline fragments for
+- `trackman(action="session")` currently has inline fragments for
   `RangePracticeActivity` and `CoursePlayActivity` only. Other shot-bearing
   kinds — notably `MapMyBagSessionActivity`, `ShotAnalysisSessionActivity`,
   `RangeFindMyDistanceActivity` — return just the interface fields until

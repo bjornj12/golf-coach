@@ -11,8 +11,8 @@ def test_setup_kit_shape():
     # System prompt is the always-on coach and references the real tools.
     sp = kit["system_prompt"].lower()
     assert "coach" in sp
-    for tool in ("auth", "training_plan", "build_visualization", "session_analysis",
-                 "gamebook_round"):
+    for tool in ("auth", "trackman", "gamebook", "synthesize", "training_plan",
+                 "build_visualization", "session_analysis"):
         assert tool in sp
     # Per-client steps are all present.
     assert set(kit["instructions"]) >= {

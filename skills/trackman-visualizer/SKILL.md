@@ -27,7 +27,7 @@ the whole story: what the ball is doing, why, and the exercises that fix it.
 Reuse what the coach already pulled, or fetch via the MCP:
 
 1. **Shots** — per-shot measurements for the club under discussion, from
-   `get_session`: `launchDirection`, `launchAngle`, `carry`, `total`,
+   `trackman(action="session", activity_id=...)`: `launchDirection`, `launchAngle`, `carry`, `total`,
    `totalSide`, `curve`, `maxHeight`, `landingAngle`, `hangTime`. Pass every
    shot (that's what makes the dispersion visible); the page animates the
    average and draws the rest faint. Missing fields are fine — the page only

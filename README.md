@@ -121,28 +121,33 @@ replies with your name (never the token).
 
 All tools return **raw data only**; the skills interpret it.
 
-**13 tools.** The CRUD clusters take an `action` (so the agent isn't choosing
-among many near-identical tools); the data reads stay discrete.
+**8 tools.** `trackman` and `gamebook` each take an `action` (so the agent
+picks one tool with a mode rather than many near-identical tools).
 
 **Setup:** `setup` — one call returns an always-on coach **system prompt** (for a
 Project), the **skills** as upload-ready files, and per-client steps. There's a
 matching `setup` prompt in the picker.
 
-**Auth:** `auth(action: status | login)`
+**Auth:** `auth(action: status | login, source?)`
 
-**Data (read-only):** `get_profile` · `get_handicap` · `list_sessions` ·
-`get_session` (full detail incl. shot-level metrics) · `get_course_rounds` ·
-`get_club_stats` · `get_activity_summary`
+**Trackman data (read-only):** `trackman(action: profile | handicap | sessions
+| session | rounds | clubs | summary)` — profile+handicap, handicap history,
+activity list, one activity in full (incl. shot-level metrics), course rounds,
+club gapping, activity counts.
+
+**Gamebook rounds (local, deterministic):** `gamebook(action: save | list |
+get | compare)` — on-course rounds ingested from Golf GameBook screenshots,
+rolling last 5, coverage-aware (only score-per-hole is trusted).
+
+**Cross-source synthesis (local, deterministic):** `synthesize()` — aligns
+Trackman's and GameBook's per-source Findings by skill area (no verdict; see
+`CLAUDE.md`'s "Sources & normalization").
 
 **Session analysis (local, deterministic):** `session_analysis(action: analyze | get | list)`
 
 **Training-plan memory:** `training_plan(action: save | next | list | done | verify)`
 
 **Visualization:** `build_visualization` (self-contained animated HTML artifact)
-
-**Gamebook rounds (local, deterministic):** `gamebook_round(action: save | list |
-get | compare)` — on-course rounds ingested from Golf GameBook screenshots,
-rolling last 5, coverage-aware (only score-per-hole is trusted)
 
 See [`CLAUDE.md`](./CLAUDE.md) for the full table and backing GraphQL.
 

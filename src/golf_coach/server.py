@@ -172,9 +172,9 @@ async def auth(
 # --------------------------------------------------------------------------- #
 #
 # Each helper below carries the exact fetch/return behavior of a former discrete
-# tool (get_profile, get_handicap, …). They are plain async functions — no
-# `@mcp.tool` — dispatched from the single `trackman` tool. Return shapes are
-# unchanged from the discrete tools they replace.
+# tool (profile, handicap, …, one per `trackman` action). They are plain async
+# functions — no `@mcp.tool` — dispatched from the single `trackman` tool.
+# Return shapes are unchanged from the discrete tools they replace.
 
 
 async def _tm_profile() -> dict[str, Any]:
