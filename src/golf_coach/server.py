@@ -263,52 +263,63 @@ async def trackman(
     ],
     activity_id: str | None = None,
     skip: int = 0,
-    take: int = 20,
+    take: int | None = None,
     only_in_avg: bool = False,
     kinds: list[str] | None = None,
     time_from: str | None = None,
     time_to: str | None = None,
     include_hidden: bool = False,
     include_retired: bool = False,
-    completed: bool = True,
+    completed: bool | None = True,
 ) -> dict[str, Any]:
     """Trackman data reads (controlled/flat-lie launch-monitor data). Raw only.
 
     Actions:
     - `profile`: identity + current handicap (`hcp.currentHcp`, latest record).
-    - `handicap` (paging `skip`/`take`, `only_in_avg`): handicap history —
-      per-round differentials and how the index moved.
-    - `sessions` (`skip`/`take`, `kinds`, `time_from`/`time_to`, `include_hidden`):
-      list activities (practice sessions and course rounds) — totalCount + a page
-      of item summaries. Use `session` with an item's id for full detail.
+    - `handicap` (paging `skip`/`take` default 20, `only_in_avg`): handicap
+      history — per-round differentials and how the index moved.
+    - `sessions` (`skip`/`take` default 25, `kinds`, `time_from`/`time_to`,
+      `include_hidden`): list activities (practice sessions and course rounds) —
+      totalCount + a page of item summaries. Use `session` with an item's id for
+      full detail.
     - `session` (needs `activity_id`): one activity in full, with shot-level launch
       metrics (RANGE_PRACTICE strokes) or the scorecard (COURSE_PLAY).
-    - `rounds` (`skip`/`take`, `completed`): course rounds (scorecards) — per-hole
-      scores and round `stat` aggregates.
+    - `rounds` (`skip`/`take` default 20, `completed`): course rounds (scorecards) —
+      per-hole scores and round `stat` aggregates. `completed=None` returns all
+      rounds regardless of completion state.
     - `clubs` (`include_retired`): per-club gapping and dispersion ("My Bag" /
       Find My Distance) — the source for gapping analysis.
-    - `summary` (`time_from`/`time_to`, `skip`/`take`): activity counts grouped by
-      kind over an optional time window.
+    - `summary` (`time_from`/`time_to`, `skip`/`take` default 50): activity counts
+      grouped by kind over an optional time window.
+
+    `take` defaults to each action's own historical default (20 for `handicap`
+    and `rounds`, 25 for `sessions`, 50 for `summary`) when omitted; pass it
+    explicitly to override.
     """
     if action == "profile":
         return await _tm_profile()
     if action == "handicap":
-        return await _tm_handicap(skip=skip, take=take, only_in_avg=only_in_avg)
+        return await _tm_handicap(
+            skip=skip, take=take if take is not None else 20, only_in_avg=only_in_avg
+        )
     if action == "sessions":
         return await _tm_sessions(
-            skip=skip, take=take, kinds=kinds, time_from=time_from,
-            time_to=time_to, include_hidden=include_hidden,
+            skip=skip, take=take if take is not None else 25, kinds=kinds,
+            time_from=time_from, time_to=time_to, include_hidden=include_hidden,
         )
     if action == "session":
         if not activity_id:
             raise ValueError("trackman(action='session') needs an activity_id.")
         return await _tm_session(activity_id)
     if action == "rounds":
-        return await _tm_rounds(skip=skip, take=take, completed=completed)
+        return await _tm_rounds(
+            skip=skip, take=take if take is not None else 20, completed=completed
+        )
     if action == "clubs":
         return await _tm_clubs(include_retired=include_retired)
     return await _tm_summary(
-        time_from=time_from, time_to=time_to, skip=skip, take=take
+        time_from=time_from, time_to=time_to, skip=skip,
+        take=take if take is not None else 50,
     )
 
 

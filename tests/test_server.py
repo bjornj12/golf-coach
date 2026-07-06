@@ -8,6 +8,8 @@ needing a live token. (verify_training_progress has its own file.)
 
 from __future__ import annotations
 
+from typing import Any
+
 import httpx
 import pytest
 
@@ -34,6 +36,27 @@ def patch_transport(monkeypatch):
         monkeypatch.setattr(server, "_run", fake_run)
 
     return _install
+
+
+@pytest.fixture
+def capture_variables(monkeypatch):
+    """Patch server._run to record the `variables` dict it's called with.
+
+    Unlike `patch_transport`, this doesn't round-trip through httpx — the fake
+    transport there ignores the request body, so nothing observes the `take`/
+    `completed` actually forwarded to a GraphQL call. This fixture captures it
+    directly, and returns a canned payload.
+    """
+    captured: dict[str, Any] = {}
+
+    def _install(payload: dict):
+        async def fake_run(query, variables=None):
+            captured["variables"] = variables
+            return payload
+
+        monkeypatch.setattr(server, "_run", fake_run)
+
+    return _install, captured
 
 
 async def test_get_profile(patch_transport):
@@ -118,6 +141,45 @@ async def test_get_activity_summary(patch_transport):
     }}})
     result = await server.trackman(action="summary")
     assert result["items"][0]["activityCount"] == 12
+
+
+async def test_trackman_take_defaults_per_action(capture_variables):
+    """Each action preserves its own original `take` default when omitted.
+
+    Regression test: the consolidated `trackman` tool's shared `take` param
+    used to default to 20 for every action, silently changing `sessions`
+    (originally 25) and `summary` (originally 50).
+    """
+    install, captured = capture_variables
+
+    install({"me": {"activities": {"totalCount": 0, "items": []}}})
+    await server.trackman(action="sessions")
+    assert captured["variables"]["take"] == 25
+
+    install({"me": {"activitySummary": {"totalCount": 0, "items": []}}})
+    await server.trackman(action="summary")
+    assert captured["variables"]["take"] == 50
+
+
+async def test_trackman_explicit_take_overrides_default(capture_variables):
+    install, captured = capture_variables
+
+    install({"me": {"activities": {"totalCount": 0, "items": []}}})
+    await server.trackman(action="sessions", take=7)
+    assert captured["variables"]["take"] == 7
+
+
+async def test_trackman_rounds_completed_none_is_valid(capture_variables):
+    """`completed=None` (meaning "all rounds") must remain a valid input."""
+    install, captured = capture_variables
+
+    install({"me": {"scorecards": [
+        {"id": "s1", "grossScore": 82, "toPar": 10,
+         "stat": {"greenInRegulation": 7, "numberOfPutts": 31}},
+    ]}})
+    result = await server.trackman(action="rounds", completed=None)
+    assert captured["variables"]["completed"] is None
+    assert result["scorecards"][0]["stat"]["numberOfPutts"] == 31
 
 
 async def test_auth_status_without_token(monkeypatch, tmp_path):
