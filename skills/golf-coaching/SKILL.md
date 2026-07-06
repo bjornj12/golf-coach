@@ -47,10 +47,15 @@ all data collection and returns a compact bundle. Instruct the subagent to:
    summary** plus the **stored-analyses index** (each session's category,
    seriousness, and summary).
 2. Also call the MCP tools for gap diagnosis:
-   - `get_club_stats` → per-club **gapping** (avg carry/total, std-dev, dispersion),
-   - `get_course_rounds` (take ~10) → recent **scoring** (FIR, GIR, putts/round,
+   - `trackman(action="clubs")` → per-club **gapping** (avg carry/total, std-dev, dispersion),
+   - `trackman(action="rounds", take=10)` → recent **scoring** (FIR, GIR, putts/round,
      score distribution, to-par),
-   - `get_profile` + `get_handicap` → **handicap** and its trend.
+   - `trackman(action="profile")` + `trackman(action="handicap")` → **handicap** and its trend.
+3. Call **`synthesize()`** — it aligns those Trackman findings against any
+   GameBook on-course rounds (ingested by the `gamebook-screenshot-analysis`
+   skill) by skill area, tagged with the context each side was captured under
+   (Trackman clean-room/flat-lie vs GameBook on-course/real conditions), so the
+   same gap showing up on both sides isn't double-counted.
 
 Have the subagent return ONLY a compact data bundle (no raw shot dumps):
 - latest-session report + its normalized deltas vs prior sessions,
@@ -58,10 +63,12 @@ Have the subagent return ONLY a compact data bundle (no raw shot dumps):
   vs **warm-ups** vs **games** (warm-ups are NOT improvement attempts),
 - handicap + direction,
 - per-club gapping with carry + dispersion,
-- recent scoring leaks.
+- recent scoring leaks,
+- the `synthesize()` cross-source view (by-skill-area findings + any
+  cross-source deltas/context notes).
 
 If the subagent reports it isn't authenticated, tell the user to run
-`trackman-mcp login`, then stop. Never fabricate numbers.
+`golf-coach login`, then stop. Never fabricate numbers.
 
 ## Step 2 — Diagnose (how he's doing + where the gaps are)
 
@@ -73,11 +80,12 @@ From the bundle:
   as improvement work.)
 - **Where strokes are lost — ranked by stroke impact, highest first:**
   - **Gapping:** adjacent clubs that overlap (< ~8–10 m apart) or holes in the
-    set (> ~18–20 m), from `get_club_stats`.
+    set (> ~18–20 m), from `trackman(action="clubs")`.
   - **Dispersion:** wide carry/side scatter, especially on scoring clubs
     (wedges, short irons).
   - **Scoring leaks:** low GIR, missed fairways, high putts/round, and where the
-    doubles+ come from.
+    doubles+ come from — read off the `synthesize()` view where a GameBook
+    on-course round is available, since it carries real playing conditions.
   - **Launch inefficiency:** poor smash / off spin if present.
   Tie every gap to the specific number behind it. If data is too thin to judge
   something, say "not enough data" rather than guessing.
@@ -166,10 +174,11 @@ wedges."
 
 ## On-course rounds (Golf GameBook)
 
-Real course rounds live in the `gamebook_round` tool, ingested from the user's
+Real course rounds live in the `gamebook` tool, ingested from the user's
 GameBook screenshots (see the gamebook-screenshot-analysis prompt). Call
-`gamebook_round(action="compare")` to get the direction of travel across their
-last few rounds.
+`gamebook(action="compare")` to get the direction of travel across their
+last few rounds — or pull it via `synthesize()`, which already aligns it
+against the Trackman side by skill area.
 
 **Lead with scoring** — to-par, the bogey/double/triple spread, and par-type
 averages are always reliable. Speak to putts/fairways/greens **only where

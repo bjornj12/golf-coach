@@ -23,9 +23,9 @@ EXPIRY_SKEW_SECONDS = 60
 
 
 def cache_dir() -> Path:
-    """Directory for cached token + browser profile. Override via TRACKMAN_CACHE_DIR."""
-    override = os.environ.get("TRACKMAN_CACHE_DIR")
-    base = Path(override) if override else Path.home() / ".trackman-mcp"
+    """Directory for cached token + browser profile. Override via GOLF_COACH_CACHE_DIR."""
+    override = os.environ.get("GOLF_COACH_CACHE_DIR")
+    base = Path(override) if override else Path.home() / ".golf-coach"
     return storage.secure_dir(base)
 
 

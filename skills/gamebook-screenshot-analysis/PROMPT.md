@@ -48,11 +48,11 @@ entered," not a genuine zero. Flag coverage; do not invent.
    course par, 9 or 18 holes. If anything fails, confirm the shaky holes with the
    user and fix the read first.
 
-5. **Save** with `gamebook_round(action="save", round=<record>)` (the tool computes
+5. **Save** with `gamebook(action="save", round=<record>)` (the tool computes
    the scoring block and keeps the last 5). If it returns `saved: false`, fix the
    `problems` and retry.
 
-6. **Report progress** with `gamebook_round(action="compare")` — confidently on
+6. **Report progress** with `gamebook(action="compare")` — confidently on
    scoring, and on other dimensions only where `comparable` is true — then use the
    `golf-coaching` prompt for the practice prescription.
 

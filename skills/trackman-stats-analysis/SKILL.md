@@ -12,11 +12,19 @@ drills — it hands a prioritized weakness list to the `golf-coaching` skill.
 ## Inputs
 
 Call the MCP tools (run `auth` first if needed):
-- `get_profile` → current handicap.
-- `list_sessions` → recent practice + rounds (default: last 60–90 days).
-- `get_course_rounds` → scorecards for scoring analysis.
-- `get_club_stats` → per-club gapping and dispersion.
-- `get_session` / `get_session` → shot-level detail where you need it.
+- `trackman(action="profile")` → current handicap.
+- `trackman(action="sessions")` → recent practice + rounds (default: last 60–90 days).
+- `trackman(action="rounds")` → scorecards for scoring analysis.
+- `trackman(action="clubs")` → per-club gapping and dispersion.
+- `trackman(action="session", activity_id=...)` → shot-level detail where you need it.
+
+Then call `synthesize()` for the cross-source, context-aware view — it aligns
+these Trackman findings against any GameBook on-course findings by skill area
+(Trackman is clean-room/flat-lie; GameBook is on-course, real conditions), so a
+gap that shows up in both isn't double-counted and one that only shows up
+on-course points at lies/pressure/course-management rather than pure mechanics.
+Diagnose from the aligned view where it's available, falling back to raw
+`trackman` output when `synthesize` has nothing (e.g. no GameBook rounds saved).
 
 If a tool errors with auth expired, re-run `auth`. If the MCP isn't
 built yet (Phase 0/1 incomplete), say so and stop — don't invent numbers.
@@ -25,7 +33,7 @@ built yet (Phase 0/1 incomplete), say so and stop — don't invent numbers.
 
 Work through these lenses and keep only what the data supports:
 
-1. **Club gapping.** From `get_club_stats`, list avg carry per club. Flag
+1. **Club gapping.** From `trackman(action="clubs")`, list avg carry per club. Flag
    overlapping clubs (gaps < ~8–10y between adjacent clubs) and big holes in
    the set (gaps > ~20y). Gaps cost approach shots.
 2. **Dispersion / consistency.** Per club, look at carry spread and
@@ -61,6 +69,8 @@ Hand this ranked list to `golf-coaching`.
 ## On-course rounds
 
 Trackman covers practice and launch-monitor data. The user's real course rounds
-come from Golf GameBook via the `gamebook_round` tool (screenshot-ingested). When
-diagnosing scoring/course trends, include `gamebook_round(action="compare")`, but
-trust only the scoring dimension unless a stat's `coverage` is not `none`.
+come from Golf GameBook via the `gamebook` tool (screenshot-ingested). When
+diagnosing scoring/course trends, include `gamebook(action="compare")` — or
+better, `synthesize()`, which already folds GameBook's scoring findings in
+alongside Trackman's — but trust only the scoring dimension unless a stat's
+`coverage` is not `none`.

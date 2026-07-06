@@ -1,12 +1,19 @@
-<!-- mcp-name: io.github.bjornj12/trackman-mcp -->
+<!-- mcp-name: io.github.bjornj12/golf-coach -->
 
-# trackman-mcp
+# Golf Coach
 
-An MCP server that logs into **Trackman Golf** with your own account and exposes
-your stats — course rounds, practice sessions, shot-level launch-monitor data,
-club gapping, and handicap — as MCP tools. On top of that, a set of Claude
-**skills** act as your golf coach: they diagnose your weaknesses and hand you a
-specific practice plan with drills and YouTube links for your next session.
+**A golf coach that trains you purely on your stats — round after round, closer to scratch.**
+
+Golf Coach logs into **Trackman Golf** with your own account and turns your
+stats — course rounds, practice sessions, shot-level launch-monitor data, club
+gapping, and handicap — into a diagnosis of where you're losing strokes, then
+hands you a specific practice plan with drills and YouTube links for your next
+session and grades your progress over time. It ships as an MCP server (the data
+tools) plus Claude **skills** (the coaching brain).
+
+> **Name note.** "Golf Coach" is the product name. The technical ids stay
+> `golf-coach` (MCP server / plugin) and `golf-coach` (the published
+> package), so existing installs keep working.
 
 > [!IMPORTANT]
 > **Unofficial.** This project is not affiliated with or endorsed by Trackman.
@@ -29,7 +36,7 @@ one-time [Authentication](#authentication-one-time) step.
 
 ### 🖥️ Claude Desktop — one-click (recommended, no terminal)
 
-1. **Download [`trackman-golf.mcpb`](https://github.com/bjornj12/trackman-mcp-client/releases/latest/download/trackman-golf.mcpb)** (from the [latest release](https://github.com/bjornj12/trackman-mcp-client/releases/latest)).
+1. **Download [`golf-coach.mcpb`](https://github.com/bjornj12/golf-coach/releases/latest/download/golf-coach.mcpb)** (from the [latest release](https://github.com/bjornj12/golf-coach/releases/latest)).
 2. Open **Claude Desktop → Settings → Extensions**, drag the file in (or
    double-click it), and click **Install**. Leave the token field **blank**.
 3. In a chat, say **"log in to Trackman"** → a **browser window opens** → sign in
@@ -51,8 +58,8 @@ re-run the in-app "log in to Trackman" when the ~7-day token lapses.
 ### ⌨️ Claude Code — plugin (server **and** coaching skills)
 
 ```text
-/plugin marketplace add bjornj12/trackman-mcp-client
-/plugin install trackman-golf@trackman-golf
+/plugin marketplace add bjornj12/golf-coach
+/plugin install golf-coach@golf-coach
 ```
 
 Installs the MCP server (run via `uvx`) and all six coaching skills.
@@ -65,7 +72,7 @@ Add this to your client's MCP config:
 ```json
 {
   "mcpServers": {
-    "trackman-golf": { "command": "uvx", "args": ["trackman-mcp"] }
+    "golf-coach": { "command": "uvx", "args": ["golf-coach"] }
   }
 }
 ```
@@ -85,16 +92,16 @@ stored by the tool, and nothing leaves your machine.
 ### Easiest — just ask Claude to log in (Claude Desktop / Claude Code)
 
 Say **"log in to Trackman."** A browser window opens (an isolated profile, not
-your normal Chrome); sign in once. The token caches at `~/.trackman-mcp/token.json`
+your normal Chrome); sign in once. The token caches at `~/.golf-coach/token.json`
 (mode `0600`) and the MCP uses it automatically from then on. No terminal, no
 token to copy — the extension fetches a browser itself if you don't have one.
 
 ### Terminal alternative (CLI users)
 
 ```bash
-uv tool install "trackman-mcp[login]"
-trackman-mcp login              # opens a browser; sign in once
-trackman-mcp login --headless   # silent refresh later (tokens last ~7 days)
+uv tool install "golf-coach[login]"
+golf-coach login              # opens a browser; sign in once
+golf-coach login --headless   # silent refresh later (tokens last ~7 days)
 scripts/install-refresh-schedule.sh   # optional: auto-refresh twice weekly
 ```
 
@@ -114,28 +121,33 @@ replies with your name (never the token).
 
 All tools return **raw data only**; the skills interpret it.
 
-**13 tools.** The CRUD clusters take an `action` (so the agent isn't choosing
-among many near-identical tools); the data reads stay discrete.
+**8 tools.** `trackman` and `gamebook` each take an `action` (so the agent
+picks one tool with a mode rather than many near-identical tools).
 
 **Setup:** `setup` — one call returns an always-on coach **system prompt** (for a
 Project), the **skills** as upload-ready files, and per-client steps. There's a
 matching `setup` prompt in the picker.
 
-**Auth:** `auth(action: status | login)`
+**Auth:** `auth(action: status | login, source?)`
 
-**Data (read-only):** `get_profile` · `get_handicap` · `list_sessions` ·
-`get_session` (full detail incl. shot-level metrics) · `get_course_rounds` ·
-`get_club_stats` · `get_activity_summary`
+**Trackman data (read-only):** `trackman(action: profile | handicap | sessions
+| session | rounds | clubs | summary)` — profile+handicap, handicap history,
+activity list, one activity in full (incl. shot-level metrics), course rounds,
+club gapping, activity counts.
+
+**Gamebook rounds (local, deterministic):** `gamebook(action: save | list |
+get | compare)` — on-course rounds ingested from Golf GameBook screenshots,
+rolling last 5, coverage-aware (only score-per-hole is trusted).
+
+**Cross-source synthesis (local, deterministic):** `synthesize()` — aligns
+Trackman's and GameBook's per-source Findings by skill area (no verdict; see
+`CLAUDE.md`'s "Sources & normalization").
 
 **Session analysis (local, deterministic):** `session_analysis(action: analyze | get | list)`
 
 **Training-plan memory:** `training_plan(action: save | next | list | done | verify)`
 
 **Visualization:** `build_visualization` (self-contained animated HTML artifact)
-
-**Gamebook rounds (local, deterministic):** `gamebook_round(action: save | list |
-get | compare)` — on-course rounds ingested from Golf GameBook screenshots,
-rolling last 5, coverage-aware (only score-per-hole is trusted)
 
 See [`CLAUDE.md`](./CLAUDE.md) for the full table and backing GraphQL.
 
@@ -164,7 +176,7 @@ The skills under [`skills/`](./skills) are delivered two ways:
 ```bash
 uv venv && uv pip install -e '.[login,dev]'   # [login] = Playwright, [dev] = test/lint tools
 
-trackman-mcp                       # run the MCP server (stdio)
+golf-coach                       # run the MCP server (stdio)
 uv run python scripts/validate.py  # sanity-check stats coverage with your token
 
 uv run pytest        # tests

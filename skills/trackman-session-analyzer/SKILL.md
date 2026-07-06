@@ -22,9 +22,9 @@ The subagent does all the work in its own context and returns just the summary
 section. If you are the dispatched subagent, proceed with the workflow.
 </HARD-RULE>
 
-## Inputs / tools used (all from the `trackman-golf` MCP)
+## Inputs / tools used (all from the `golf-coach` MCP)
 
-`auth`, `list_sessions`, `session_analysis(action="analyze")`,
+`auth`, `trackman(action="sessions")`, `session_analysis(action="analyze")`,
 `session_analysis(action="list")`, `session_analysis(action="get")`. The heavy lifting (classify,
 metrics, course difficulty, normalization, used-vs-available clubs) is done
 deterministically inside `session_analysis(action="analyze")` — your job is orchestration
@@ -33,9 +33,9 @@ and narration, not recomputing numbers.
 ## Workflow (subagent)
 
 1. **Auth check.** Call `auth`. If not authenticated, stop and report
-   that the user needs to run `trackman-mcp login` — do not fabricate data.
+   that the user needs to run `golf-coach login` — do not fabricate data.
 
-2. **Pull recent sessions.** Call `list_sessions` with `take: 30` (newest
+2. **Pull recent sessions.** Call `trackman(action="sessions", take=30)` (newest
    first). This includes both practice activities and course rounds.
 
 3. **Find what's new.** Call `session_analysis(action="list")` to get already-stored ids.

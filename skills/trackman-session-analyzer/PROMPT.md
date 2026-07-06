@@ -11,9 +11,9 @@ into the conversation.
 ## Workflow
 
 1. **Auth.** `auth(action="status")`. If not authenticated, tell the user to run
-   `trackman-mcp login` and stop — don't fabricate data.
-2. **Recent sessions.** `list_sessions` with `take: 30` (newest first) — practice
-   and rounds.
+   `golf-coach login` and stop — don't fabricate data.
+2. **Recent sessions.** `trackman(action="sessions", take=30)` (newest first) —
+   practice and rounds.
 3. **What's already stored.** `session_analysis(action="list")` for stored ids.
 4. **Analyze new sessions, OLDEST first.** Walk the fetched list oldest → newest;
    for each id not already stored, call

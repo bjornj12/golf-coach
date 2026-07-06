@@ -15,7 +15,7 @@ it.
 ## Gather the inputs (reuse what the coach already pulled, or fetch via the MCP)
 
 1. **Shots** — per-shot measurements for the club under discussion, from
-   `get_session`: `launchDirection`, `launchAngle`, `carry`, `total`,
+   `trackman(action="session", activity_id=...)`: `launchDirection`, `launchAngle`, `carry`, `total`,
    `totalSide`, `curve`, `maxHeight`, `landingAngle`, `hangTime`. Pass every
    shot — the page animates the average and draws the rest faint. Missing
    fields are fine; the page only labels what was measured.
@@ -28,7 +28,7 @@ it.
 4. **Blocks** — the prescribed drills, each tagged `where: "range"` or
    `where: "home"`, each with 1–3 **verified** links
    (`links: [{label, url}]`) from the `drill-library` prompt or live search.
-5. **Handedness** — from `get_profile` (`profile.dexterity`).
+5. **Handedness** — from `trackman(action="profile")` (`profile.dexterity`).
 
 ## Build it
 

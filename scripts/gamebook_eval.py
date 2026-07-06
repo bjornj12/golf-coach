@@ -16,7 +16,7 @@ import json
 import sys
 from pathlib import Path
 
-from trackman_mcp import gamebook_analysis as ga
+from golf_coach import gamebook_analysis as ga
 
 GOLDEN = Path(__file__).resolve().parent.parent / "tests/fixtures/gamebook/2026-06-09.json"
 PASS_THRESHOLD = 95.0

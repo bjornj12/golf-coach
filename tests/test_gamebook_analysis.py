@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from trackman_mcp import gamebook_analysis as ga
+from golf_coach import gamebook_analysis as ga
 
 GOLDEN = Path(__file__).parent / "fixtures" / "gamebook" / "2026-06-09.json"
 

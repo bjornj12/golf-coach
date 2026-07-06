@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from trackman_mcp import gamebook_analysis as ga
-from trackman_mcp import prompts
+from golf_coach import gamebook_analysis as ga
+from golf_coach import prompts
 
 FIXTURE = Path(__file__).parent / "fixtures" / "gamebook" / "2026-06-09.json"
 
@@ -28,7 +28,7 @@ def test_skill_prompt_has_no_claude_code_only_language():
 def test_skill_mentions_coverage_and_scoring_truth():
     body = _skill_body("gamebook-screenshot-analysis")
     assert "coverage" in body
-    assert "gamebook_round" in body
+    assert "gamebook" in body
     assert "self-check" in body or "self check" in body
 
 
@@ -53,10 +53,10 @@ def test_golden_fixture_matches_analytics():
 
 def test_golf_coaching_reads_gamebook_rounds():
     body = _skill_body("golf-coaching")
-    assert "gamebook_round" in body
+    assert "gamebook" in body
     assert "coverage" in body            # must respect coverage flags
 
 
 def test_stats_analysis_mentions_on_course_rounds():
     body = _skill_body("trackman-stats-analysis")
-    assert "gamebook_round" in body
+    assert "gamebook" in body

@@ -6,7 +6,7 @@ import base64
 import json
 import time
 
-from trackman_mcp import token_store
+from golf_coach import token_store
 
 
 def _make_jwt(exp: int) -> str:
@@ -29,7 +29,7 @@ def test_decode_exp_handles_garbage():
 
 
 def test_save_and_load_roundtrip(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
     future = int(time.time()) + 600
     token_store.save_token(_make_jwt(future))
     cached = token_store.load_token()
@@ -40,7 +40,7 @@ def test_save_and_load_roundtrip(tmp_path, monkeypatch):
 
 
 def test_expired_token_detected(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
     past = int(time.time()) - 10
     token_store.save_token(_make_jwt(past))
     cached = token_store.load_token()
@@ -49,12 +49,12 @@ def test_expired_token_detected(tmp_path, monkeypatch):
 
 
 def test_load_missing_returns_none(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
     assert token_store.load_token() is None
 
 
 def test_token_file_is_user_only_readable(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
     token_store.save_token(_make_jwt(int(time.time()) + 600))
     mode = (token_store.token_path().stat().st_mode) & 0o777
     assert mode == 0o600

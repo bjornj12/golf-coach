@@ -87,7 +87,7 @@ def read_json(path: Path, default: Any) -> Any:
         except OSError:
             note = ""
         print(
-            f"trackman-mcp: could not parse {path.name}: {exc}{note}",
+            f"golf-coach: could not parse {path.name}: {exc}{note}",
             file=sys.stderr,
         )
         return default

@@ -27,7 +27,7 @@ the whole story: what the ball is doing, why, and the exercises that fix it.
 Reuse what the coach already pulled, or fetch via the MCP:
 
 1. **Shots** — per-shot measurements for the club under discussion, from
-   `get_session`: `launchDirection`, `launchAngle`, `carry`, `total`,
+   `trackman(action="session", activity_id=...)`: `launchDirection`, `launchAngle`, `carry`, `total`,
    `totalSide`, `curve`, `maxHeight`, `landingAngle`, `hangTime`. Pass every
    shot (that's what makes the dispersion visible); the page animates the
    average and draws the rest faint. Missing fields are fine — the page only
@@ -50,7 +50,7 @@ Assemble the data dict (schema below) and render it. Two ways:
 
 - **MCP tool (preferred):** call `build_visualization(data)` → returns `{html}`.
 - **Direct:** `uv run python scripts/visualize.py <data.json> <out.html>` or
-  `from trackman_mcp.visualize import build_html`.
+  `from golf_coach.visualize import build_html`.
 
 ```
 {
@@ -71,7 +71,7 @@ Assemble the data dict (schema below) and render it. Two ways:
 - **Claude Desktop / claude.ai (artifacts):** emit the returned `html` as a
   **`text/html` artifact** — fully self-contained, renders in the sandbox.
 - **Claude Code (terminal):** write the html OUTSIDE the repo (it contains the
-  user's data), e.g. `~/.trackman-mcp/viz/<name>.html`, and offer to `open` it.
+  user's data), e.g. `~/.golf-coach/viz/<name>.html`, and offer to `open` it.
   Optionally `scripts/check-visualization.py <file>` headless-renders it for a
   sanity check.
 

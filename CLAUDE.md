@@ -1,8 +1,12 @@
-# Trackman Golf MCP
+# Golf Coach
 
 ## Project Overview
 
-**Name**: Trackman Golf MCP (working name)
+**Name**: Golf Coach (product name). The technical ids stay `golf-coach` (MCP
+server / plugin) and `golf-coach` (published package / module `golf_coach`) —
+these are deliberately NOT renamed, so existing installs and the registry entry
+keep working. "Trackman" references to the *data source* also stay (it genuinely
+connects to Trackman).
 
 **Purpose**: A Model Context Protocol (MCP) server that connects to Trackman's
 golf platform using the user's own login, fetches their stats (course rounds,
@@ -82,9 +86,9 @@ All tools return **raw, structured data only**. No prose, no advice. Every tool
 calls the single GraphQL endpoint `POST https://api.trackmangolf.com/graphql`
 under the signed-in user's `me` root.
 
-The surface is **13 tools** (the 12 data/coaching tools below, plus `setup`).
-CRUD clusters use an `action` parameter so the model isn't choosing among many
-near-duplicate tools; the data reads stay discrete and well-named.
+The surface is **8 tools** (the 7 data/coaching tools below, plus `setup`).
+`trackman` and `gamebook` each take an `action` parameter so the model picks one
+tool with a mode rather than many near-duplicate tools.
 
 `setup` is a one-call onboarding tool: it returns an always-on coach
 `system_prompt` (to paste into a Project), the coaching `skills` as upload-ready
@@ -93,25 +97,38 @@ files, and per-client instructions. A matching `setup` MCP prompt drives it.
 
 | Tool | Backing (under `me`) | Returns |
 |------|----------------------|---------|
-| `auth(action: status\|login, open_browser?)` | OIDC token capture / browser | `status`: validate the current token, report who you're signed in as (never echoes it). `login`: (re)authenticate — silent refresh first, else open a browser to sign in. |
-| `get_profile` | `profile` + `hcp` | Identity + current **handicap** (`hcp.currentHcp`). |
-| `get_handicap` | `hcp.playerHistory` | Handicap record history (differentials, trend). |
-| `list_sessions` | `activities(kinds,timeFrom,timeTo,skip,take)` | Practice + course activities (id, time, kind, summary). |
-| `get_session` | `node(id)` / `activities` | One activity in full: range strokes **with shot-level launch metrics** (ball/club speed, smash, launch, spin, carry, side, curve, landing angle, ~80 fields) or round detail. (Absorbed the old `get_shot_data`.) |
-| `get_course_rounds` | `scorecards(skip,take,completed)` | Scorecards: per-hole scores, FIR/GIR, putts, `stat`. |
-| `get_club_stats` | `equipment.clubs.findMyDistance` | Per-club **gapping**: carry/total, std-dev, dispersion. |
-| `get_activity_summary` | `activitySummary(timeFrom,timeTo)` | Counts per activity kind over a window. |
+| `auth(action: status\|login, open_browser?, source?)` | OIDC token capture / browser | `status`: validate the current token, report who you're signed in as (never echoes it). `login`: (re)authenticate — silent refresh first, else open a browser to sign in. `source` picks which data source to authenticate (default `trackman`; only Trackman needs auth — other sources, e.g. GameBook, are local). |
+| `trackman(action: profile\|handicap\|sessions\|session\|rounds\|clubs\|summary, …)` | `profile`/`hcp`/`activities`/`scorecards`/`equipment`/`activitySummary` | Raw Trackman reads, one action each: `profile` — identity + current **handicap** (`hcp.currentHcp`); `handicap` — `hcp.playerHistory` record history; `sessions` — `activities(kinds,timeFrom,timeTo,skip,take)` list; `session` (needs `activity_id`) — one activity in full, **shot-level launch metrics** (ball/club speed, smash, launch, spin, carry, side, curve, landing angle, ~80 fields) or round detail; `rounds` — `scorecards(skip,take,completed)` per-hole scores, FIR/GIR, putts, `stat`; `clubs` — `equipment.clubs.findMyDistance` per-club **gapping** (carry/total, std-dev, dispersion); `summary` — `activitySummary(timeFrom,timeTo)` counts per activity kind. |
+| `gamebook(action: save\|list\|get\|compare, round?, round_id?)` | local (deterministic) | On-course rounds ingested from Golf GameBook screenshots (save/list/get/compare), rolling last 5, coverage-aware — only score-per-hole is trusted. |
+| `synthesize()` | local (deterministic, cross-source) | Runs each registered source's per-source expert analyzer (Trackman + GameBook) over its normalized data and aligns the resulting `Finding`s by skill area — cross-source deltas, coverage, and context notes (controlled/flat-lie vs on-course/variable). Still no verdicts; see "Sources & normalization" below. |
 | `session_analysis(action, activity_id?)` | see below | Per-session analysis cluster. |
 | `training_plan(action, …)` | see below | The coach's memory cluster. |
 | `build_visualization(data)` | local (deterministic) | A self-contained animated HTML artifact of a diagnosis. |
-| `gamebook_round(action, round?, round_id?)` | local (deterministic) | On-course rounds ingested from Golf GameBook screenshots (save/list/get/compare), rolling last 5, coverage-aware — only score-per-hole is trusted. |
+
+### Sources & normalization
+
+The multi-source backend behind `trackman`/`gamebook`/`synthesize` is pluggable:
+each data source (Trackman, GameBook) implements the `Source` protocol
+(`sources/base.py`), registers into `sources/registry.py`, and normalizes its own
+raw shape into the shared model (`model.py`: `Session`, `Round`, `Profile`,
+`Handicap`, `ClubGapping`), each tagged with a `SourceContext` (`controlled`/
+`flat` lie + no conditions for Trackman, `on_course`/`variable` lie + real
+conditions for GameBook). Each source also has a **per-source expert analyzer**
+(`sources/*/analyzer.py`) that turns its normalized model objects into `Finding`s
+— factual measurements (skill area, metric, value, coverage, direction), no
+coaching opinions. `synthesis.synthesize()` (the `synthesize` tool) runs both
+analyzers and calls `synthesis.align` to group `Finding`s by skill area, surface
+cross-source deltas, and note the context each side was captured under — it
+renders **no verdict**. The coach skills call `synthesize` to reason over the
+aligned, cross-source view instead of juggling `trackman` and `gamebook` output
+by hand.
 
 ### Session-analysis tools (local store, deterministic analytics)
 
 These persist and serve a per-session *analysis*. The analytics are
 **deterministic** (in `analysis.py`) — classification and measurement, not
 coaching. Coaching narrative still lives in the skills. The store is JSON at
-`~/.trackman-mcp/session-analyses.json`, capped at the **last 30**, latest first.
+`~/.golf-coach/session-analyses.json`, capped at the **last 30**, latest first.
 
 One tool, `session_analysis(action, activity_id?)`:
 
@@ -131,7 +148,7 @@ or is a focused kind (shot analysis, find-my-distance, sim/virtual-range, etc.);
 ### Training-plan tools (the coach's memory)
 
 The coach saves prescribed practice sessions so they can be recalled later
-("what's today's training?"). Store is JSON at `~/.trackman-mcp/training-plans.json`
+("what's today's training?"). Store is JSON at `~/.golf-coach/training-plans.json`
 (`training_store.py`), an ordered queue capped at the most recent 50.
 
 One tool, `training_plan(action, plan?, plan_id?, status?, activity_id?, result_session_id?)`:
@@ -154,14 +171,14 @@ value|low/high}`, ops `< <= > >= between abs< abs<=`) graded deterministically b
 `training_plan(action="verify")`, then `training_plan(action="done")` once every
 target is met).
 
-### Gamebook-round tool (local store, deterministic)
+### Gamebook tool (local store, deterministic)
 
 The `gamebook-screenshot-analysis` skill extracts an on-course round from Golf
 GameBook screenshots and saves it here so the coach can track scoring across
-recent rounds. Store is JSON at `~/.trackman-mcp/gamebook-rounds.json`
+recent rounds. Store is JSON at `~/.golf-coach/gamebook-rounds.json`
 (`gamebook_store.py`), a rolling window of the **last 5** rounds, keyed by `id`.
 
-One tool, `gamebook_round(action, round?, round_id?)`:
+One tool, `gamebook(action, round?, round_id?)`:
 
 | action | Does |
 |--------|------|
@@ -188,10 +205,10 @@ action opens a sign-in window (falling back from a fast silent attempt).
 
 **Getting the token** — two paths (`Config.from_env`: `TRACKMAN_TOKEN` env wins,
 else the cached token):
-- **Browser login (recommended)**: `trackman-mcp login` opens an isolated
+- **Browser login (recommended)**: `golf-coach login` opens an isolated
   Playwright browser; the user signs in once; the token is captured from the
-  GraphQL traffic and cached at `~/.trackman-mcp/token.json` (mode `0600`). The
-  browser profile persists the session, so `trackman-mcp login --headless`
+  GraphQL traffic and cached at `~/.golf-coach/token.json` (mode `0600`). The
+  browser profile persists the session, so `golf-coach login --headless`
   refreshes silently with no re-login (cron-friendly). Code: `login.py`,
   `token_store.py`. Playwright is the optional `[login]` extra.
 - **Manual**: set `TRACKMAN_TOKEN` from a captured portal session (`.env.example`).
@@ -223,7 +240,7 @@ Treat the user's Trackman login as sensitive. **Non-negotiable:**
 ## Project Structure (target, once Phase 1 begins)
 
 ```
-trackman-mcp-client/
+golf-coach/
 ├── CLAUDE.md                      # this file
 ├── README.md
 ├── pyproject.toml
@@ -232,7 +249,7 @@ trackman-mcp-client/
 ├── docs/
 │   └── trackman-api.md            # discovered endpoints (Phase 0 output)
 ├── src/
-│   └── trackman_mcp/
+│   └── golf_coach/
 │       ├── __init__.py
 │       ├── server.py              # FastMCP app + tool registration
 │       ├── client.py              # Trackman HTTP client + auth/session
@@ -275,16 +292,18 @@ all except the dev-only `trackman-api-discovery`.
   session. **Context-forked / data-collection skill: must run in a subagent,
   never on the main thread.**
 - **`gamebook-screenshot-analysis`** — Ingests Golf GameBook round screenshots
-  into a coverage-aware round record via `gamebook_round` (rolling last 5), for
+  into a coverage-aware round record via `gamebook` (rolling last 5), for
   scoring-led progress that feeds the coach. **Context-forked / data-collection
   skill: must run in a subagent, never on the main thread.**
 
-Typical flow: `auth(action="status")` → `trackman-stats-analysis` (diagnose) →
-`golf-coaching` (prescribe, pulling from `drill-library`). For per-session
-ingest + a normalized latest-session report, dispatch `trackman-session-analyzer`
-as a subagent (in Claude Code; in other clients invoke the prompt directly). For
-on-course rounds from GameBook screenshots, dispatch `gamebook-screenshot-analysis`
-the same way; it feeds `golf-coaching`'s scoring-led progress narrative.
+Typical flow: `auth(action="status")` → `trackman-stats-analysis` (diagnose,
+pulling `trackman`/`gamebook` data through `synthesize` for the cross-source
+view) → `golf-coaching` (prescribe, pulling from `drill-library`). For
+per-session ingest + a normalized latest-session report, dispatch
+`trackman-session-analyzer` as a subagent (in Claude Code; in other clients
+invoke the prompt directly). For on-course rounds from GameBook screenshots,
+dispatch `gamebook-screenshot-analysis` the same way; it feeds
+`golf-coaching`'s scoring-led progress narrative.
 
 ---
 

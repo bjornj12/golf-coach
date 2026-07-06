@@ -17,9 +17,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from trackman_mcp import analysis, queries, session_store  # noqa: E402
-from trackman_mcp.client import TrackmanClient, TrackmanError  # noqa: E402
-from trackman_mcp.config import Config  # noqa: E402
+from golf_coach import analysis, queries, session_store  # noqa: E402
+from golf_coach.client import TrackmanClient, TrackmanError  # noqa: E402
+from golf_coach.config import Config  # noqa: E402
 
 VALID_CATEGORIES = {"game", "practice", "warmup", "other"}
 
@@ -32,7 +32,7 @@ def check(label: str, ok: bool, detail: str = "") -> bool:
 async def main() -> int:
     config = Config.from_env()
     if not config.has_token:
-        print("FAIL: no token. Run `trackman-mcp login` first.")
+        print("FAIL: no token. Run `golf-coach login` first.")
         return 2
 
     async with TrackmanClient(config) as client:

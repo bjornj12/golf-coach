@@ -1,17 +1,17 @@
 {
   "manifest_version": "0.4",
-  "name": "trackman-golf",
-  "display_name": "Trackman Golf",
+  "name": "golf-coach",
+  "display_name": "Golf Coach",
   "version": "0.4.0",
-  "description": "Your Trackman Golf stats as MCP tools — handicap, rounds, practice, shot data, club gapping.",
+  "description": "A golf coach powered by your own Trackman stats — handicap, rounds, practice, shot data, club gapping — turned into a practice plan.",
   "long_description": "Connects to Trackman Golf with your own account and exposes your stats — course rounds, practice sessions, shot-level launch-monitor data, club gapping, and handicap — as MCP tools, so Claude can analyze your game and coach you. Runs locally; your data and token never leave your machine. To sign in, just tell Claude \"log in to Trackman\" — a browser window opens, you sign in once, done. No terminal, no token. Requires a Trackman account.",
   "author": {
     "name": "Bjorn Jonsson",
     "email": "bjorn@avo.sh"
   },
-  "homepage": "https://github.com/bjornj12/trackman-mcp-client",
-  "documentation": "https://github.com/bjornj12/trackman-mcp-client#readme",
-  "support": "https://github.com/bjornj12/trackman-mcp-client/issues",
+  "homepage": "https://github.com/bjornj12/golf-coach",
+  "documentation": "https://github.com/bjornj12/golf-coach#readme",
+  "support": "https://github.com/bjornj12/golf-coach/issues",
   "icon": "icon.png",
   "server": {
     "type": "uv",

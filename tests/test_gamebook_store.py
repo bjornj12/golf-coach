@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from trackman_mcp import gamebook_store as gs
+from golf_coach import gamebook_store as gs
 
 
 @pytest.fixture(autouse=True)
 def _isolate(tmp_path, monkeypatch):
-    monkeypatch.setenv("TRACKMAN_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
 
 
 def _round(rid: str, date: str) -> dict:

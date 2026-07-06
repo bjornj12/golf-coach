@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from trackman_mcp import analysis
+from golf_coach import analysis
 
 
 def _strokes(club: str, **metric_series):

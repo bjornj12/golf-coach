@@ -89,7 +89,7 @@ class TrackmanClient:
         if resp.status_code in (401, 403):
             raise TrackmanAuthError(
                 f"Trackman returned {resp.status_code} — your session is expired "
-                "or invalid. Use the `login` tool (or run `trackman-mcp login`) "
+                "or invalid. Use the `login` tool (or run `golf-coach login`) "
                 "to sign in again."
             )
         if resp.status_code >= 400:

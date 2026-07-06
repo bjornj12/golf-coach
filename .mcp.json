@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "trackman-golf": {
+    "golf-coach": {
       "command": "uvx",
-      "args": ["--from", "${CLAUDE_PLUGIN_ROOT}", "trackman-mcp"],
+      "args": ["--from", "${CLAUDE_PLUGIN_ROOT}", "golf-coach"],
       "env": { "TRACKMAN_TOKEN": "${TRACKMAN_TOKEN}" }
     }
   }

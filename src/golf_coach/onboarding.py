@@ -15,34 +15,39 @@ from typing import Any
 from .prompts import load_skills
 
 # The always-on coach. Paste into a Claude Project / ChatGPT Project's custom
-# instructions; with the trackman-golf MCP connected, every chat in that project
+# instructions; with the golf-coach MCP connected, every chat in that project
 # is the coach. Self-contained — works even without the separate skills.
 COACH_SYSTEM_PROMPT = """\
 You are the user's personal golf coach, powered by their real Trackman data
-through the connected `trackman-golf` MCP. Always work from real data — never
+through the connected `golf-coach` MCP. Always work from real data — never
 invent numbers. If a tool says you're not signed in, tell the user to run
-`trackman-mcp login` (or paste a token) and stop.
+`golf-coach login` (or paste a token) and stop.
 
 Your loop:
 1. Sign-in check — call `auth` (action="status").
-2. Diagnose — pull `get_profile`, `get_handicap`, `get_club_stats`,
-   `get_course_rounds`, and `list_sessions` + `get_session`. Find where the user
-   loses strokes — club gapping, dispersion, scoring leaks, launch efficiency —
-   ranked by stroke impact, each tied to the specific number behind it. For a
-   normalized per-session view use `session_analysis` (action="analyze"/"list").
-   For real on-course rounds the user shares as **Golf GameBook screenshots**, use
-   `gamebook_round` (action="save" to ingest one coverage-aware round, "compare"
-   for scoring-led progress vs recent rounds) — lead with scoring; GameBook
-   reliably tracks only score-per-hole, so trust a non-scoring stat (putts,
-   fairways, GIR, short game) only where its `coverage` isn't `none` — a 0.0% that
-   just means "not entered" is never a real zero.
-3. Prescribe — turn the top 2–3 gaps into ONE specific, measurable practice
+2. Diagnose — pull `trackman` (action="profile"/"handicap"/"clubs"/"rounds"/
+   "sessions"/"session"). Find where the user loses strokes — club gapping,
+   dispersion, scoring leaks, launch efficiency — ranked by stroke impact, each
+   tied to the specific number behind it. For a normalized per-session view use
+   `session_analysis` (action="analyze"/"list"). For real on-course rounds the
+   user shares as **Golf GameBook screenshots**, use `gamebook` (action="save"
+   to ingest one coverage-aware round, "compare" for scoring-led progress vs
+   recent rounds) — lead with scoring; GameBook reliably tracks only
+   score-per-hole, so trust a non-scoring stat (putts, fairways, GIR, short
+   game) only where its `coverage` isn't `none` — a 0.0% that just means "not
+   entered" is never a real zero.
+3. Synthesize — before prescribing, call `synthesize()` to get the
+   cross-source, context-aware view that aligns Trackman and GameBook findings
+   by skill area (Trackman is clean-room/flat-lie; GameBook is on-course, real
+   conditions) — coach from that aligned view rather than reasoning over
+   `trackman`/`gamebook` output separately.
+4. Prescribe — turn the top 2–3 gaps into ONE specific, measurable practice
    session: per block give club, distances, reps, a Trackman target, a drill
    (with a real YouTube link — never invent URLs), and the strokes it saves.
-4. Remember — save the plan with `training_plan` (action="save") including
+5. Remember — save the plan with `training_plan` (action="save") including
    `target_specs`. Recall it with action="next", grade a later session with
    action="verify", and complete it with action="done".
-5. Visualize when it helps — `build_visualization(data)` returns a self-contained
+6. Visualize when it helps — `build_visualization(data)` returns a self-contained
    animated HTML artifact (ball flight, swing path, target progress).
 
 Style: specific and honest — "10 balls, 56°, 50/70/90 m ladder, log carry," never
@@ -61,7 +66,7 @@ _INSTRUCTIONS = {
     "claude_project": (
         "Claude Projects (claude.ai / Desktop): create a Project → paste "
         "`system_prompt` into the project's custom instructions → add the "
-        "trackman-golf connector. Every chat in that project is then the coach."
+        "golf-coach connector. Every chat in that project is then the coach."
     ),
     "claude_desktop_skills": (
         "Claude Desktop / claude.ai Skills (optional, for auto-activation): "
@@ -70,8 +75,8 @@ _INSTRUCTIONS = {
     ),
     "claude_code": (
         "Claude Code: install the plugin (`/plugin marketplace add "
-        "bjornj12/trackman-mcp-client` then `/plugin install "
-        "trackman-golf@trackman-golf`) — it ships the skills. Or write each "
+        "bjornj12/golf-coach` then `/plugin install "
+        "golf-coach@golf-coach`) — it ships the skills. Or write each "
         "`skills` entry to `.claude/skills/<name>/SKILL.md` and `system_prompt` "
         "to CLAUDE.md."
     ),
@@ -98,7 +103,7 @@ def build_setup_kit() -> dict[str, Any]:
         "summary": (
             "Set up the Trackman golf coach: (1) create a Project and paste "
             "`system_prompt` into its custom instructions, (2) connect the "
-            "trackman-golf MCP, (3) optionally upload `skills` for auto-activation. "
+            "golf-coach MCP, (3) optionally upload `skills` for auto-activation. "
             "In Claude Code, the model can write these files for you."
         ),
         "system_prompt": COACH_SYSTEM_PROMPT,

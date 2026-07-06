@@ -54,7 +54,7 @@ async def check(html: str, shot_path: str) -> int:
 
 
 def main(argv: list[str]) -> int:
-    from trackman_mcp.visualize import _DEMO, build_html
+    from golf_coach.visualize import _DEMO, build_html
 
     if not argv or argv[0] in ("-h", "--help"):
         print(__doc__)

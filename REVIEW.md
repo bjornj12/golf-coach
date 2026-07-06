@@ -17,19 +17,19 @@ None.
 
 **`pkg-no-server-json`** — No `server.json`; cannot publish to the MCP Registry · `MISSING:server.json` · *distribution*
 - Impact: The server cannot be listed on `registry.modelcontextprotocol.io`. This is a hard blocker **only if** registry listing is a goal — which is not stated anywhere in the repo. Also requires the package to be on PyPI first (it is not).
-- Fix: `mcp-publisher init`, then set `name` to `io.github.bjornj12/trackman-mcp`, a `packages[]` entry (`registryType: pypi`, `runtimeHint: uvx`, `transport:{type:stdio}`, `environmentVariables[TRACKMAN_TOKEN]{isSecret:true}`), and add the `<!-- mcp-name: ... -->` marker to README. Pull the live `$schema` date rather than hardcoding.
+- Fix: `mcp-publisher init`, then set `name` to `io.github.bjornj12/golf-coach`, a `packages[]` entry (`registryType: pypi`, `runtimeHint: uvx`, `transport:{type:stdio}`, `environmentVariables[TRACKMAN_TOKEN]{isSecret:true}`), and add the `<!-- mcp-name: ... -->` marker to README. Pull the live `$schema` date rather than hardcoding.
 
 ### Medium
 
-**`sec-viz-html-xss`** — HTML/JS injection in generated visualization artifact · `src/trackman_mcp/visualize.py:260-266` (build_html), `:36-100` (template), `:240-249` (client JS) · *security*
+**`sec-viz-html-xss`** — HTML/JS injection in generated visualization artifact · `src/golf_coach/visualize.py:260-266` (build_html), `:36-100` (template), `:240-249` (client JS) · *security*
 - Impact: `build_html` does raw string substitution with no escaping. `title`/`subtitle`/`diagnosis` land directly in the HTML body (`<h1>__TITLE__</h1>`), so `title='<img src=x onerror=...>'` executes on load with no breakout trick. `json.dumps(data)` is injected into `<script>` and does not escape `</script>`, allowing script-context breakout. Client JS writes `${t.label}`/`${b.name}` via `innerHTML` and builds `<a href="${b.link}">` with no scheme check. Data flows from model-generated coaching text and partly venue-controlled Trackman fields (course/club display names). Self-contained sandboxed artifact caps blast radius.
 - Fix: `html.escape()` on `title`/`subtitle`/`diagnosis`; for the embedded JSON escape the breakout sequence (`json.dumps(...).replace('</', '<\\/')`); in client JS build DOM via `textContent` and whitelist `link` to `http(s)` only.
 
-**`sec-token-write-race-dir-perms` / `token-file-perm-race`** — Token written world-readable before chmod; cache dir and data stores not restricted · `src/trackman_mcp/token_store.py:76-79` (save_token), `:23-39` (cache_dir/browser_profile_dir) · *security / python*
+**`sec-token-write-race-dir-perms` / `token-file-perm-race`** — Token written world-readable before chmod; cache dir and data stores not restricted · `src/golf_coach/token_store.py:76-79` (save_token), `:23-39` (cache_dir/browser_profile_dir) · *security / python*
 - Impact: `save_token` does `path.write_text(...)` then `os.chmod(0o600)` — on first creation the token is briefly group/world-readable (note: only on first write; `write_text` truncates in place thereafter). The cache dir is created with default `mkdir` (≈0755), and the long-lived Playwright `browser-profile/` cookies (which mint fresh 7-day tokens) plus `session-analyses.json`/`training-plans.json` live there unprotected — the cookies are arguably more sensitive than the token. Requires a multi-user host to exploit.
 - Fix: Create the token file atomically with restrictive mode (`os.open(path, O_WRONLY|O_CREAT|O_TRUNC, 0o600)`, or temp-file at 0600 + `os.replace`). Create cache/profile dirs with mode `0o700` and enforce on access.
 
-**`mcp-stdout-print-corrupts-stdio`** — `print()` in login/refresh path writes to stdout and can corrupt the JSON-RPC stream · `src/trackman_mcp/login.py:50,116` · *mcp*
+**`mcp-stdout-print-corrupts-stdio`** — `print()` in login/refresh path writes to stdout and can corrupt the JSON-RPC stream · `src/golf_coach/login.py:50,116` · *mcp*
 - Impact: `capture_token()` prints to stdout. It is reachable at server runtime via the `login` tool (`server.py:121,132`) and via `_try_silent_refresh` (`server.py:47`), which `_run` invokes on every data tool's auth-expiry retry (`server.py:67`). A stdio MCP server must emit only JSON-RPC on stdout; on the routine 7-day token expiry path these prints inject non-JSON bytes and can break client parsing. (The CLI prints in `_login_cmd` are fine — they run before `mcp.run()`.)
 - Fix: Route all human-facing diagnostics in `login.py` to stderr (`file=sys.stderr` or a stderr logging handler). Never write to stdout from code reachable by a tool call.
 
@@ -37,19 +37,19 @@ None.
 - Impact: `_write` does a single `write_text` (no temp+rename), and `_read` swallows corruption (`except (ValueError, OSError): return []`). A crash or a concurrent `login` refresh racing a tool write mid-write leaves a truncated file; next load silently returns `[]`/`None`, losing up to 50 training plans / 30 analyses or wiping the cached token — data loss masked as empty success.
 - Fix: Write atomically (temp file in same dir + `os.replace`). Distinguish "file missing" from "file unparseable" — log/raise on parse failure instead of returning empty.
 
-**`viz-swing-path-mirrored-rh`** — Swing-path diagram is horizontally mirrored for right-handed golfers · `src/trackman_mcp/visualize.py:168` (ang), `:176-182` (line), `:188-190` (clubhead) · *accuracy*
+**`viz-swing-path-mirrored-rh`** — Swing-path diagram is horizontally mirrored for right-handed golfers · `src/golf_coach/visualize.py:168` (ang), `:176-182` (line), `:188-190` (clubhead) · *accuracy*
 - Impact: `ang(a)=(RH?-a:a)*…`. For a RH golfer a `+2` in-to-out clubPath renders UP-LEFT when it should go UP-RIGHT. RH is the default (`:101`), so the headline "why your ball curves" panel is flipped left-for-right for almost every user, and it contradicts the panel's own caption (`:212-213`) and the ball-flight panel's convention (`:126`). Face line and ideal line are mirrored by the same root.
 - Fix: Drop the RH negation in `ang()` (use `a*…`, negate only for LH) so the swing-path sign matches the ball-flight panel. Add a fixed-input test asserting the rendered x-offset sign per handedness.
 
-**`queries-session-measurements-missing-range`** — `verify_training_progress` can never grade range-practice sessions · `src/trackman_mcp/queries.py:229-256` (SESSION_MEASUREMENTS) · *accuracy*
+**`queries-session-measurements-missing-range`** — `verify_training_progress` can never grade range-practice sessions · `src/golf_coach/queries.py:229-256` (SESSION_MEASUREMENTS) · *accuracy*
 - Impact: `SESSION_MEASUREMENTS` has no inline fragments for `RangePracticeActivity`/`RangeFindMyDistanceActivity`, so those nodes resolve only `PlayerActivity{id time kind}` with no `strokes`. In `verify_training_progress`, range sessions yield empty strokes and are skipped / report `has_data=False` — even when the plan targets a metric the range *does* capture (carry, ballSpeed, totalSide, curve, all present in `GET_SESSION`). The range is the project's primary venue, so the coach can never grade those plans done.
 - Fix: Add the two range fragments to `SESSION_MEASUREMENTS` selecting the metrics they expose, or explicitly say "verification is bay-only" instead of a generic no-data message. (Note: clubPath/faceAngle are bay-only regardless, so partial bay-only behavior is by design.)
 
-**`analysis-duration-zero-warmup`** — Missing/unparseable stroke times collapse duration to 0 and misclassify a serious session as warm-up · `src/trackman_mcp/analysis.py:97-101` (_duration_minutes), `:114-116` (_is_warmup_sized), `:164` (classify_session) · *accuracy*
+**`analysis-duration-zero-warmup`** — Missing/unparseable stroke times collapse duration to 0 and misclassify a serious session as warm-up · `src/golf_coach/analysis.py:97-101` (_duration_minutes), `:114-116` (_is_warmup_sized), `:164` (classify_session) · *accuracy*
 - Impact: `_duration_minutes` returns 0 when <2 times parse; `_is_warmup_sized` is `strokes<8 OR minutes<5`. A 30-stroke multi-club serious session whose strokes lack parseable `time` → minutes=0 → `0<5` True → classified warm-up, `is_improvement_attempt=False`, even for a SERIOUS_KIND (the warm-up floor at `:164` precedes the serious branch). Also triggers when all timestamps are identical. Dropped from improvement tracking purely due to a data quirk.
 - Fix: Treat un-computable duration as *unknown*, not 0 — apply the `minutes<5` floor only when ≥2 times parse; otherwise fall back to stroke count. Add a test with strokes lacking `time`.
 
-**`perf-verify-n-plus-1-fanout`** — `verify_training_progress` fans out up to ~21 sequential GraphQL round-trips, each on a fresh TLS connection · `src/trackman_mcp/server.py:460-484` · *performance* (consolidates `mcp-client-per-call-and-sequential-fanout`)
+**`perf-verify-n-plus-1-fanout`** — `verify_training_progress` fans out up to ~21 sequential GraphQL round-trips, each on a fresh TLS connection · `src/golf_coach/server.py:460-484` · *performance* (consolidates `mcp-client-per-call-and-sequential-fanout`)
 - Impact: With no `activity_id`, it runs `LIST_SESSIONS(take=20)` then sequentially `await`s `_strokes_for(aid)` for each activity, each opening/closing its own client. Worst case (no early match) = ~21 serialized HTTPS requests with ~21 TLS handshakes. The early `break` makes the common case 1-2 fetches, so the 21-call path is the rare no-match case. The list response already carries `clubs` for `RangePracticeActivity` (`queries.py:58-60`) but it is never used to pre-filter.
 - Fix: Pre-filter range candidates using the `clubs` field already returned by `LIST_SESSIONS` (add `clubs` to other list fragments to extend it). Reuse a single client across the loop (see `perf-no-connection-reuse`). Consider a smaller `take` for the scan.
 
@@ -67,11 +67,11 @@ None.
 
 **`pkg-no-plugin-json`** — No `.claude-plugin/plugin.json`/`.mcp.json` to bundle the server + 6 skills as a Claude Code plugin · `MISSING` · *distribution* (severity contingent)
 - Impact: Cannot install as a Claude Code plugin. **Only a defect if plugin packaging is a goal** — it is not stated in CLAUDE.md/README, which document a working uvx/pip + stdio-MCP model. If it is a goal, high; otherwise an optional enhancement.
-- Fix: Add `.claude-plugin/plugin.json` (kebab `name`), a root `.mcp.json` (`uvx --from ${CLAUDE_PLUGIN_ROOT} trackman-mcp`, `env.TRACKMAN_TOKEN=${user_config.trackman_token}`), move/symlink `.claude/skills/` → top-level `skills/` (Claude Code auto-discovers `skills/`), and declare a `userConfig` `trackman_token` with `sensitive:true`.
+- Fix: Add `.claude-plugin/plugin.json` (kebab `name`), a root `.mcp.json` (`uvx --from ${CLAUDE_PLUGIN_ROOT} golf-coach`, `env.TRACKMAN_TOKEN=${user_config.trackman_token}`), move/symlink `.claude/skills/` → top-level `skills/` (Claude Code auto-discovers `skills/`), and declare a `userConfig` `trackman_token` with `sensitive:true`.
 
 **`pkg-readme-no-client-config`** — README has no copy-paste MCP client config · `README.md:73-84` · *distribution*
 - Impact: A non-author cannot wire this into Claude Desktop / any MCP client; the install story is dev-only. ("Public-place" framing is the reviewer's premise, not a stated goal.)
-- Fix: Add an "Add to your MCP client" block matching the *actual* model: the `trackman-mcp` console script (absolute `.venv/bin/trackman-mcp` or `uv run --directory <repo> trackman-mcp`), note that no env is required because the server auto-loads `~/.trackman-mcp/token.json` after `trackman-mcp login` (TRACKMAN_TOKEN only as override), and give the macOS config path. Add a `uvx` variant only after PyPI publish.
+- Fix: Add an "Add to your MCP client" block matching the *actual* model: the `golf-coach` console script (absolute `.venv/bin/golf-coach` or `uv run --directory <repo> golf-coach`), note that no env is required because the server auto-loads `~/.golf-coach/token.json` after `golf-coach login` (TRACKMAN_TOKEN only as override), and give the macOS config path. Add a `uvx` variant only after PyPI publish.
 
 ### Low
 
@@ -99,7 +99,7 @@ None.
 - **`pkg-no-license-file`** — No LICENSE and no `license` field · `MISSING` · *distribution*. Note: MIT is **not** referenced anywhere in the repo (the original "MIT everywhere" claim was false) — the license choice is open. Unlicensed = all-rights-reserved, blocking redistribution if published. Fix: pick a license, add `LICENSE` + SPDX `license` + `authors` in pyproject. Release-readiness item, not a current blocker.
 - **`pkg-pyproject-metadata-thin`** — No authors/license/keywords/classifiers/`[project.urls]` · `pyproject.toml:1-10` · *distribution*. Only `license` has value independent of publishing; the rest matter only on PyPI. Fix: add `license`+`authors` now; defer the rest until a publish decision.
 - **`pkg-no-mcpb-manifest`** — No `manifest.json`/`.mcpb` for Claude Desktop one-click · `MISSING` · *distribution*. Lowest-priority channel; the Playwright browser-login + cron-refresh flow can't run inside a self-contained extension (only the manual-token-paste path would work). Defer.
-- **`pkg-uvx-name-mismatch`** — Distribution name `trackman-mcp-client` ≠ script `trackman-mcp` · `pyproject.toml:2,13` · *distribution*. `uvx trackman-mcp` would fail; needs `uvx --from trackman-mcp-client trackman-mcp`. Harmless under the documented `uv pip install -e .` path. Fix (optional): rename the dist to `trackman-mcp`, or document the `--from` form, if/when uvx install is documented.
+- **`pkg-uvx-name-mismatch`** — Distribution name `golf-coach` ≠ script `golf-coach` · `pyproject.toml:2,13` · *distribution*. `uvx golf-coach` would fail; needs `uvx --from golf-coach golf-coach`. Harmless under the documented `uv pip install -e .` path. Fix (optional): rename the dist to `golf-coach`, or document the `--from` form, if/when uvx install is documented.
 - **`pkg-readme-missing-playwright-install`** — README `[login]` setup omits the browser-binary step · `README.md:29-37` · *distribution*. Note: `login.py:104-109` tries installed Chrome first, so **most users are unaffected**; only users without Chrome hit it (and the code prints the remedy at runtime). Fix: add a *fallback* note "if you don't have Chrome, run `playwright install chromium`" — do **not** make it mandatory.
 - **`pkg-uvlock-gitignored`** — `uv.lock` (262 KB, present on disk) is gitignored · `.gitignore:33-34` · *distribution*. Non-reproducible dev/CI installs with loose ranges (`fastmcp>=2.0.0`, `httpx>=0.27`). Fix: un-ignore and commit `uv.lock`; keep loose ranges in pyproject.
 
@@ -127,24 +127,24 @@ None.
 
 ## 3. Distribution & plugin readiness checklist
 
-**Important:** nothing in CLAUDE.md/README states public/registry/plugin/Desktop distribution is a goal — the documented model is a personal source install (`uv pip install -e '.[login]'` → `trackman-mcp` over stdio). Treat this section as the gating checklist to action **only if you decide to ship**, in the order below. Items marked **(do anyway)** have value even for the personal tool.
+**Important:** nothing in CLAUDE.md/README states public/registry/plugin/Desktop distribution is a goal — the documented model is a personal source install (`uv pip install -e '.[login]'` → `golf-coach` over stdio). Treat this section as the gating checklist to action **only if you decide to ship**, in the order below. Items marked **(do anyway)** have value even for the personal tool.
 
 - [ ] **LICENSE + `license`/`authors` in pyproject** *(do anyway)* — pick a license; legal clarity for a public GitHub repo.
 - [ ] **CI (`ci.yml`: uv + pytest 3.11/3.12 + ruff + mypy) and `[tool.ruff]`/`[tool.mypy]` config** *(do anyway)* — close the quality-gate gap; the cache dirs are already gitignored.
 - [ ] **Commit `uv.lock`** *(do anyway)* — reproducible dev/CI installs.
 - [ ] **README: "Add to your MCP client" block** *(do anyway)* — matching the real install + cached-token auth model (not an assumed PyPI/uvx flow).
-- [ ] **PyPI publish** — fill pyproject metadata (keywords, classifiers, `[project.urls]`), `uv build` + `uv publish`. Decide the distribution name (`trackman-mcp` vs `trackman-mcp-client`) to fix the uvx mismatch. Add `<!-- mcp-name: io.github.bjornj12/trackman-mcp -->` to README for registry ownership.
+- [ ] **PyPI publish** — fill pyproject metadata (keywords, classifiers, `[project.urls]`), `uv build` + `uv publish`. Decide the distribution name (`golf-coach` vs `golf-coach`) to fix the uvx mismatch. Add `<!-- mcp-name: io.github.bjornj12/golf-coach -->` to README for registry ownership.
 - [ ] **MCP Registry** — `server.json` (depends on PyPI):
 
 ```json
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.bjornj12/trackman-mcp",
+  "name": "io.github.bjornj12/golf-coach",
   "description": "Fetch Trackman golf stats and coach from them",
   "version": "0.1.0",
   "packages": [{
     "registryType": "pypi", "registryBaseUrl": "https://pypi.org",
-    "identifier": "trackman-mcp-client", "version": "0.1.0",
+    "identifier": "golf-coach", "version": "0.1.0",
     "runtimeHint": "uvx", "transport": { "type": "stdio" },
     "environmentVariables": [
       { "name": "TRACKMAN_TOKEN", "description": "Captured portal bearer token", "isSecret": true }
@@ -159,7 +159,7 @@ None.
 // .mcp.json
 { "mcpServers": { "trackman": {
   "command": "uvx",
-  "args": ["--from", "${CLAUDE_PLUGIN_ROOT}", "trackman-mcp"],
+  "args": ["--from", "${CLAUDE_PLUGIN_ROOT}", "golf-coach"],
   "env": { "TRACKMAN_TOKEN": "${user_config.trackman_token}" }
 }}}
 ```

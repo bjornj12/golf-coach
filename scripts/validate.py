@@ -19,13 +19,13 @@ import sys
 # Allow running from the repo root without installing the package.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from trackman_mcp import queries  # noqa: E402
-from trackman_mcp.client import (  # noqa: E402
+from golf_coach import queries  # noqa: E402
+from golf_coach.client import (  # noqa: E402
     TrackmanAuthError,
     TrackmanClient,
     TrackmanError,
 )
-from trackman_mcp.config import Config  # noqa: E402
+from golf_coach.config import Config  # noqa: E402
 
 
 def _count(obj: object) -> int:

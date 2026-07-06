@@ -5,8 +5,8 @@ skills as MCP prompts. The server ONLY fetches/returns raw data and runs the
 deterministic analytics — coaching *judgment* lives in the skills (now delivered
 as prompts). See CLAUDE.md.
 
-Run:  trackman-mcp           (stdio transport)
-Auth: run `trackman-mcp login` (browser) or set TRACKMAN_TOKEN. See README.
+Run:  golf-coach           (stdio transport)
+Auth: run `golf-coach login` (browser) or set TRACKMAN_TOKEN. See README.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from .client import TrackmanAuthError, TrackmanClient
 from .config import Config
 
 mcp = FastMCP(
-    name="trackman-golf",
+    name="golf-coach",
     instructions=(
         "Fetches the signed-in user's Trackman Golf statistics: profile and "
         "handicap, practice/course sessions, scorecards, shot-level launch "
@@ -124,7 +124,7 @@ async def _auth_login(open_browser: bool) -> dict[str, Any]:
                 "success": False,
                 "message": "Saved session expired and open_browser is false. "
                            "Call auth(action='login', open_browser=true), or run "
-                           "`trackman-mcp login` in a terminal.",
+                           "`golf-coach login` in a terminal.",
             }
         try:
             await capture_token(headless=False)
@@ -146,6 +146,7 @@ async def _auth_login(open_browser: bool) -> dict[str, Any]:
 async def auth(
     action: Literal["status", "login"] = "status",
     open_browser: bool = True,
+    source: str = "trackman",
 ) -> dict[str, Any]:
     """Check or (re)establish your Trackman sign-in.
 
@@ -156,38 +157,36 @@ async def auth(
       session first; if that's expired and `open_browser` is true, opens a window
       to sign in once. Use when `status` says expired/not signed in.
 
-    Never echoes the token.
+    `source` selects the data source to authenticate; only `trackman` needs auth
+    (other sources, e.g. GameBook, are local). Never echoes the token.
     """
+    if source != "trackman":
+        return {"error": "auth is only needed for the 'trackman' source"}
     if action == "login":
         return await _auth_login(open_browser)
     return await _auth_status()
 
 
 # --------------------------------------------------------------------------- #
-# Data reads (discrete, read-only)
+# Trackman data reads (one `trackman(action, …)` tool over per-action helpers)
 # --------------------------------------------------------------------------- #
+#
+# Each helper below carries the exact fetch/return behavior of a former discrete
+# tool (profile, handicap, …, one per `trackman` action). They are plain async
+# functions — no `@mcp.tool` — dispatched from the single `trackman` tool.
+# Return shapes are unchanged from the discrete tools they replace.
 
 
-@mcp.tool(annotations=_RO_API)
-async def get_profile() -> dict[str, Any]:
-    """Get the player's profile and current handicap.
-
-    Returns identity (name, email, nationality, dexterity, category) and the
-    current handicap (`hcp.currentHcp`, plus the most recent handicap record).
-    """
+async def _tm_profile() -> dict[str, Any]:
+    """Player profile + current handicap (identity, `hcp.currentHcp`, record)."""
     data = await _run(queries.PROFILE)
     return data.get("me", {})
 
 
-@mcp.tool(annotations=_RO_API)
-async def get_handicap(skip: int = 0, take: int = 20, only_in_avg: bool = False) -> dict[str, Any]:
-    """Get handicap history: per-round differentials and how the index moved.
-
-    Args:
-        skip: paging offset.
-        take: number of records to return.
-        only_in_avg: only records counted in the handicap average.
-    """
+async def _tm_handicap(
+    skip: int = 0, take: int = 20, only_in_avg: bool = False
+) -> dict[str, Any]:
+    """Handicap history: per-round differentials and how the index moved."""
     data = await _run(
         queries.HANDICAP_HISTORY,
         {"skip": skip, "take": take, "onlyInAvg": only_in_avg},
@@ -195,8 +194,7 @@ async def get_handicap(skip: int = 0, take: int = 20, only_in_avg: bool = False)
     return data.get("me", {}).get("hcp", {})
 
 
-@mcp.tool(annotations=_RO_API)
-async def list_sessions(
+async def _tm_sessions(
     skip: int = 0,
     take: int = 25,
     kinds: list[str] | None = None,
@@ -204,17 +202,7 @@ async def list_sessions(
     time_to: str | None = None,
     include_hidden: bool = False,
 ) -> dict[str, Any]:
-    """List the player's activities (practice sessions and course rounds).
-
-    Args:
-        skip / take: paging.
-        kinds: optional ActivityKind filter, e.g. ["RANGE_PRACTICE", "COURSE_PLAY"].
-        time_from / time_to: ISO-8601 timestamps to bound the window.
-        include_hidden: include activities the user has hidden.
-
-    Returns totalCount and a page of items (id, time, kind, plus a per-kind
-    summary). Use `get_session` with an item's id for full detail.
-    """
+    """Activities (practice + course), totalCount + a page of item summaries."""
     data = await _run(
         queries.LIST_SESSIONS,
         {
@@ -229,14 +217,8 @@ async def list_sessions(
     return data.get("me", {}).get("activities", {})
 
 
-@mcp.tool(annotations=_RO_API)
-async def get_session(activity_id: str) -> dict[str, Any]:
-    """Get one activity in full by its id — including shot-level launch metrics.
-
-    For RANGE_PRACTICE: every stroke with its measurement (ball/club speed,
-    smash, launch, spin, carry, side, curve, landing angle, …).
-    For COURSE_PLAY: the scorecard with per-hole scores and per-shot metrics.
-    """
+async def _tm_session(activity_id: str) -> dict[str, Any]:
+    """One activity in full by id — shot-level launch metrics / scorecard."""
     data = await _run(queries.GET_SESSION, {"id": activity_id})
     node = data.get("node")
     if not node:
@@ -244,49 +226,101 @@ async def get_session(activity_id: str) -> dict[str, Any]:
     return node
 
 
-@mcp.tool(annotations=_RO_API)
-async def get_course_rounds(
+async def _tm_rounds(
     skip: int = 0, take: int = 20, completed: bool | None = True
 ) -> dict[str, Any]:
-    """Get the player's course rounds (scorecards).
-
-    Each round includes per-hole scores (score, putts, GIR, hcp strokes) and
-    round aggregates (`stat`: driving, FIR, GIR, putts, score distribution).
-
-    Args:
-        skip / take: paging.
-        completed: filter by completion (True = finished rounds only).
-    """
+    """Course rounds (scorecards): per-hole scores + round `stat` aggregates."""
     data = await _run(
         queries.COURSE_ROUNDS, {"skip": skip, "take": take, "completed": completed}
     )
     return {"scorecards": data.get("me", {}).get("scorecards", [])}
 
 
-@mcp.tool(annotations=_RO_API)
-async def get_club_stats(include_retired: bool = False) -> dict[str, Any]:
-    """Get per-club gapping and dispersion ("My Bag" / Find My Distance).
-
-    For each club: average carry and total, carry/total standard deviation, and
-    the dispersion ellipse. This is the source for gapping analysis.
-    """
+async def _tm_clubs(include_retired: bool = False) -> dict[str, Any]:
+    """Per-club gapping and dispersion ("My Bag" / Find My Distance)."""
     data = await _run(queries.CLUB_STATS, {"includeRetired": include_retired})
     return data.get("me", {}).get("equipment", {})
 
 
-@mcp.tool(annotations=_RO_API)
-async def get_activity_summary(
+async def _tm_summary(
     time_from: str | None = None,
     time_to: str | None = None,
     skip: int = 0,
     take: int = 50,
 ) -> dict[str, Any]:
-    """Get activity counts grouped by kind over an optional time window."""
+    """Activity counts grouped by kind over an optional time window."""
     data = await _run(
         queries.ACTIVITY_SUMMARY,
         {"timeFrom": time_from, "timeTo": time_to, "skip": skip, "take": take},
     )
     return data.get("me", {}).get("activitySummary", {})
+
+
+@mcp.tool(annotations=_RO_API)
+async def trackman(
+    action: Literal[
+        "profile", "handicap", "sessions", "session", "rounds", "clubs", "summary"
+    ],
+    activity_id: str | None = None,
+    skip: int = 0,
+    take: int | None = None,
+    only_in_avg: bool = False,
+    kinds: list[str] | None = None,
+    time_from: str | None = None,
+    time_to: str | None = None,
+    include_hidden: bool = False,
+    include_retired: bool = False,
+    completed: bool | None = True,
+) -> dict[str, Any]:
+    """Trackman data reads (controlled/flat-lie launch-monitor data). Raw only.
+
+    Actions:
+    - `profile`: identity + current handicap (`hcp.currentHcp`, latest record).
+    - `handicap` (paging `skip`/`take` default 20, `only_in_avg`): handicap
+      history — per-round differentials and how the index moved.
+    - `sessions` (`skip`/`take` default 25, `kinds`, `time_from`/`time_to`,
+      `include_hidden`): list activities (practice sessions and course rounds) —
+      totalCount + a page of item summaries. Use `session` with an item's id for
+      full detail.
+    - `session` (needs `activity_id`): one activity in full, with shot-level launch
+      metrics (RANGE_PRACTICE strokes) or the scorecard (COURSE_PLAY).
+    - `rounds` (`skip`/`take` default 20, `completed`): course rounds (scorecards) —
+      per-hole scores and round `stat` aggregates. `completed=None` returns all
+      rounds regardless of completion state.
+    - `clubs` (`include_retired`): per-club gapping and dispersion ("My Bag" /
+      Find My Distance) — the source for gapping analysis.
+    - `summary` (`time_from`/`time_to`, `skip`/`take` default 50): activity counts
+      grouped by kind over an optional time window.
+
+    `take` defaults to each action's own historical default (20 for `handicap`
+    and `rounds`, 25 for `sessions`, 50 for `summary`) when omitted; pass it
+    explicitly to override.
+    """
+    if action == "profile":
+        return await _tm_profile()
+    if action == "handicap":
+        return await _tm_handicap(
+            skip=skip, take=take if take is not None else 20, only_in_avg=only_in_avg
+        )
+    if action == "sessions":
+        return await _tm_sessions(
+            skip=skip, take=take if take is not None else 25, kinds=kinds,
+            time_from=time_from, time_to=time_to, include_hidden=include_hidden,
+        )
+    if action == "session":
+        if not activity_id:
+            raise ValueError("trackman(action='session') needs an activity_id.")
+        return await _tm_session(activity_id)
+    if action == "rounds":
+        return await _tm_rounds(
+            skip=skip, take=take if take is not None else 20, completed=completed
+        )
+    if action == "clubs":
+        return await _tm_clubs(include_retired=include_retired)
+    return await _tm_summary(
+        time_from=time_from, time_to=time_to, skip=skip,
+        take=take if take is not None else 50,
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -555,6 +589,20 @@ async def setup() -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- #
+# Cross-source synthesis (aligns each source's findings; no verdict)
+# --------------------------------------------------------------------------- #
+
+
+@mcp.tool(annotations=_RO_LOCAL)
+async def synthesize() -> dict[str, Any]:
+    """Cross-source, context-aware view: runs each source's expert analyzer and aligns their findings by skill area (no verdicts — the coach interprets)."""
+    from .synthesis import synthesize as _synth
+
+    view = await _synth()
+    return view.model_dump()
+
+
+# --------------------------------------------------------------------------- #
 # GameBook rounds (on-course data ingested from screenshots)
 # --------------------------------------------------------------------------- #
 
@@ -622,7 +670,7 @@ def _gamebook_compare(round_id: str | None) -> dict[str, Any]:
 
 
 @mcp.tool(annotations=_WRITE_LOCAL)
-async def gamebook_round(
+async def gamebook(
     action: Literal["save", "list", "get", "compare"],
     round: dict[str, Any] | None = None,
     round_id: str | None = None,
@@ -649,13 +697,13 @@ async def gamebook_round(
 
     if action == "save":
         if not isinstance(round, dict) or not round:
-            raise ValueError("gamebook_round(action='save') needs a non-empty `round`.")
+            raise ValueError("gamebook(action='save') needs a non-empty `round`.")
         return _gamebook_save(round)
     if action == "list":
         return _gamebook_list()
     if action == "get":
         if not round_id:
-            raise ValueError("gamebook_round(action='get') needs a `round_id`.")
+            raise ValueError("gamebook(action='get') needs a `round_id`.")
         return gamebook_store.get_round(round_id) or {"error": f"no round {round_id}"}
     return _gamebook_compare(round_id)
 
@@ -700,14 +748,14 @@ def main() -> None:
     """Console-script entry point.
 
     Usage:
-        trackman-mcp                 run the MCP server (stdio)
-        trackman-mcp login           open a browser to sign in and cache a token
-        trackman-mcp login --headless  silently refresh using the saved session
+        golf-coach                 run the MCP server (stdio)
+        golf-coach login           open a browser to sign in and cache a token
+        golf-coach login --headless  silently refresh using the saved session
     """
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(prog="trackman-mcp")
+    parser = argparse.ArgumentParser(prog="golf-coach")
     sub = parser.add_subparsers(dest="command")
     login = sub.add_parser("login", help="Capture a Trackman token via a browser.")
     login.add_argument(

@@ -1,9 +1,10 @@
 """Deterministic session analysis: classification, metrics, normalization.
 
-Pure functions over the data returned by the MCP's `get_session` tool. Kept
-deterministic (no LLM) so the analyzer's judgments can be unit-tested and
-eval'd. The analyzer *skill* layers narrative/coaching on top of this; this
-module makes no coaching recommendations — it classifies and measures.
+Pure functions over the data returned by the MCP's `trackman(action="session")`
+tool. Kept deterministic (no LLM) so the analyzer's judgments can be
+unit-tested and eval'd. The analyzer *skill* layers narrative/coaching on top
+of this; this module makes no coaching recommendations — it classifies and
+measures.
 
 Distances/speeds are metric (meters, m/s), matching the Trackman API.
 """
@@ -457,7 +458,7 @@ def analyze(
     """Produce a complete, storable analysis record for one session.
 
     Args:
-        detail: the `get_session` node for this session.
+        detail: the `trackman(action="session")` node for this session.
         session_id: stable id to key the stored record.
         history: previously stored analysis records (for normalization).
         clubs_available: the player's bag (to flag used vs unused clubs).

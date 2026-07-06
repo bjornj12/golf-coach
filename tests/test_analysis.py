@@ -6,7 +6,7 @@ classification, game analysis, and normalization against history.
 
 from __future__ import annotations
 
-from trackman_mcp import analysis
+from golf_coach import analysis
 
 
 def _practice(strokes: int, minutes: float, clubs: list[str], kind="RANGE_PRACTICE"):
