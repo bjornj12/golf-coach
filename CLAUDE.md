@@ -82,7 +82,7 @@ All tools return **raw, structured data only**. No prose, no advice. Every tool
 calls the single GraphQL endpoint `POST https://api.trackmangolf.com/graphql`
 under the signed-in user's `me` root.
 
-The surface is **12 tools** (the 11 data/coaching tools below, plus `setup`).
+The surface is **13 tools** (the 12 data/coaching tools below, plus `setup`).
 CRUD clusters use an `action` parameter so the model isn't choosing among many
 near-duplicate tools; the data reads stay discrete and well-named.
 
@@ -104,6 +104,7 @@ files, and per-client instructions. A matching `setup` MCP prompt drives it.
 | `session_analysis(action, activity_id?)` | see below | Per-session analysis cluster. |
 | `training_plan(action, …)` | see below | The coach's memory cluster. |
 | `build_visualization(data)` | local (deterministic) | A self-contained animated HTML artifact of a diagnosis. |
+| `gamebook_round(action, round?, round_id?)` | local (deterministic) | On-course rounds ingested from Golf GameBook screenshots (save/list/get/compare), rolling last 5, coverage-aware — only score-per-hole is trusted. |
 
 ### Session-analysis tools (local store, deterministic analytics)
 
@@ -152,6 +153,26 @@ value|low/high}`, ops `< <= > >= between abs< abs<=`) graded deterministically b
 `target_specs`) and reads here (Recall → `training_plan(action="next")` →
 `training_plan(action="verify")`, then `training_plan(action="done")` once every
 target is met).
+
+### Gamebook-round tool (local store, deterministic)
+
+The `gamebook-screenshot-analysis` skill extracts an on-course round from Golf
+GameBook screenshots and saves it here so the coach can track scoring across
+recent rounds. Store is JSON at `~/.trackman-mcp/gamebook-rounds.json`
+(`gamebook_store.py`), a rolling window of the **last 5** rounds, keyed by `id`.
+
+One tool, `gamebook_round(action, round?, round_id?)`:
+
+| action | Does |
+|--------|------|
+| `save` (needs `round`) | Runs a self-check (hole sums vs gross/par) on a coverage-aware record, refuses inconsistent reads, computes the `scoring` block, stores it (last 5), returns the stored record. |
+| `list` | Index of stored rounds (id, date, gross, net, to_par, coverage), newest first. |
+| `get` (needs `round_id`) | One full stored round. |
+| `compare` (optional `round_id`, default latest) | Deterministic scoring + coverage-respecting deltas vs the rounds before it; the coach narrates progress from it. |
+
+Only score-per-hole is reliably tracked by GameBook; every other dimension
+(putts, fairways, GIR, chips, bunkers, penalties) carries a `coverage` flag
+(`full`/`partial`/`none`), and analysis never treats an untracked stat as zero.
 
 **Auth reality**: the web portal uses a *confidential* OIDC client (backend-for-
 frontend), so the MCP cannot run the OAuth exchange itself. It authenticates with
@@ -253,11 +274,17 @@ all except the dev-only `trackman-api-discovery`.
   analysis (last 30) via the MCP, and returns a normalized summary of the latest
   session. **Context-forked / data-collection skill: must run in a subagent,
   never on the main thread.**
+- **`gamebook-screenshot-analysis`** — Ingests Golf GameBook round screenshots
+  into a coverage-aware round record via `gamebook_round` (rolling last 5), for
+  scoring-led progress that feeds the coach. **Context-forked / data-collection
+  skill: must run in a subagent, never on the main thread.**
 
 Typical flow: `auth(action="status")` → `trackman-stats-analysis` (diagnose) →
 `golf-coaching` (prescribe, pulling from `drill-library`). For per-session
 ingest + a normalized latest-session report, dispatch `trackman-session-analyzer`
-as a subagent (in Claude Code; in other clients invoke the prompt directly).
+as a subagent (in Claude Code; in other clients invoke the prompt directly). For
+on-course rounds from GameBook screenshots, dispatch `gamebook-screenshot-analysis`
+the same way; it feeds `golf-coaching`'s scoring-led progress narrative.
 
 ---
 
