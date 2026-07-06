@@ -114,7 +114,7 @@ replies with your name (never the token).
 
 All tools return **raw data only**; the skills interpret it.
 
-**12 tools.** The CRUD clusters take an `action` (so the agent isn't choosing
+**13 tools.** The CRUD clusters take an `action` (so the agent isn't choosing
 among many near-identical tools); the data reads stay discrete.
 
 **Setup:** `setup` — one call returns an always-on coach **system prompt** (for a
@@ -133,6 +133,10 @@ matching `setup` prompt in the picker.
 
 **Visualization:** `build_visualization` (self-contained animated HTML artifact)
 
+**Gamebook rounds (local, deterministic):** `gamebook_round(action: save | list |
+get | compare)` — on-course rounds ingested from Golf GameBook screenshots,
+rolling last 5, coverage-aware (only score-per-hole is trusted)
+
 See [`CLAUDE.md`](./CLAUDE.md) for the full table and backing GraphQL.
 
 ## Skills (coaching brain)
@@ -150,6 +154,7 @@ The skills under [`skills/`](./skills) are delivered two ways:
 | `drill-library` | Curated drills + vetted links — incl. **at-home / no-ball** drills — plus live search |
 | `golf-practice-at-home` | Build a daily **no-ball** routine for a diagnosed fault, animated per drill |
 | `trackman-session-analyzer` | Ingest + normalize recent sessions |
+| `gamebook-screenshot-analysis` | Ingest GameBook round screenshots into a coverage-aware round record; scoring-led progress that feeds the coach |
 | `trackman-visualizer` | Animate a diagnosis (or a single drill's mechanics) as an HTML artifact |
 
 (`trackman-api-discovery` is a project/dev skill and isn't served as a prompt.)

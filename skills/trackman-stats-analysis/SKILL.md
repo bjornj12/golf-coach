@@ -57,3 +57,10 @@ you read it from. If the data is too thin to judge something, say "not enough
 data" rather than padding the list.
 
 Hand this ranked list to `golf-coaching`.
+
+## On-course rounds
+
+Trackman covers practice and launch-monitor data. The user's real course rounds
+come from Golf GameBook via the `gamebook_round` tool (screenshot-ingested). When
+diagnosing scoring/course trends, include `gamebook_round(action="compare")`, but
+trust only the scoring dimension unless a stat's `coverage` is not `none`.

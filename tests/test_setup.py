@@ -11,7 +11,8 @@ def test_setup_kit_shape():
     # System prompt is the always-on coach and references the real tools.
     sp = kit["system_prompt"].lower()
     assert "coach" in sp
-    for tool in ("auth", "training_plan", "build_visualization", "session_analysis"):
+    for tool in ("auth", "training_plan", "build_visualization", "session_analysis",
+                 "gamebook_round"):
         assert tool in sp
     # Per-client steps are all present.
     assert set(kit["instructions"]) >= {
@@ -22,7 +23,8 @@ def test_setup_kit_shape():
 def test_setup_kit_skills_are_upload_ready():
     kit = onboarding.build_setup_kit()
     names = {s["name"] for s in kit["skills"]}
-    assert {"golf-coaching", "drill-library", "trackman-stats-analysis"} <= names
+    assert {"golf-coaching", "drill-library", "trackman-stats-analysis",
+            "gamebook-screenshot-analysis"} <= names  # incl. on-course GameBook skill
     assert "trackman-api-discovery" not in names  # dev skill excluded
     for s in kit["skills"]:
         assert s["filename"] == f"{s['name']}/SKILL.md"
