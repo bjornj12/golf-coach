@@ -45,3 +45,10 @@ For each: the **club/area**, the **specific number** that's off, and **why it
 costs strokes** — never vague ("be more consistent"). Cite the metric you read it
 from. If data is too thin to judge something, say "not enough data." When the
 user wants this turned into practice, hand off to the **golf-coaching** prompt.
+
+## On-course rounds
+
+Trackman covers practice and launch-monitor data. The user's real course rounds
+come from Golf GameBook via the `gamebook_round` tool (screenshot-ingested). When
+diagnosing scoring/course trends, include `gamebook_round(action="compare")`, but
+trust only the scoring dimension unless a stat's `coverage` is not `none`.

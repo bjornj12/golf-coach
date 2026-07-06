@@ -49,3 +49,14 @@ def test_golden_fixture_matches_analytics():
     assert len(gir_hits) == record["dimensions"]["gir"]["hit"]
     putts_tracked = {h["hole"] for h in record["holes"] if h.get("putts") is not None}
     assert {h["hole"] for h in gir_tracked} == putts_tracked
+
+
+def test_golf_coaching_reads_gamebook_rounds():
+    body = _skill_body("golf-coaching")
+    assert "gamebook_round" in body
+    assert "coverage" in body            # must respect coverage flags
+
+
+def test_stats_analysis_mentions_on_course_rounds():
+    body = _skill_body("trackman-stats-analysis")
+    assert "gamebook_round" in body

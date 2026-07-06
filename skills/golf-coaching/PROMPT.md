@@ -131,3 +131,18 @@ check), **Where you're losing strokes** (ranked, each with its number), **Your
 plan** (blocks with club/reps/target/drill link/strokes saved + the metrics to
 re-check next time). End with one encouraging, data-tied line. Be specific:
 "10 balls, 56°, 50/70/90 m ladder, log carry" — never "practice your wedges."
+
+## On-course rounds (Golf GameBook)
+
+Real course rounds live in the `gamebook_round` tool, ingested from the user's
+GameBook screenshots (see the gamebook-screenshot-analysis prompt). Call
+`gamebook_round(action="compare")` to get the direction of travel across their
+last few rounds.
+
+**Lead with scoring** — to-par, the bogey/double/triple spread, and par-type
+averages are always reliable. Speak to putts/fairways/greens **only where
+`comparable` is true** (both rounds actually tracked it); otherwise say so plainly
+("not tracked in enough rounds to judge"). Never build a drill off a `none`-coverage
+stat or a "0.0%" that just means nothing was entered. Turn a backslide on a
+reliable signal (e.g. par-3 scoring, triple-bogey count) into a specific practice
+nudge, pulling drills from the drill-library.
