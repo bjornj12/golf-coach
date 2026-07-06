@@ -82,6 +82,14 @@ def test_self_check_flags_par_mismatch_and_hole_count():
     assert any("holes" in p for p in problems)
 
 
+def test_self_check_flags_hole_missing_score():
+    rec = {"course": {"par": 70}, "result": {"gross": 100},
+           "holes": [{"hole": n, "par": 4, "score": 4} for n in range(1, 18)]
+                    + [{"hole": 18, "par": 4}]}   # hole 18 missing score
+    problems = ga.self_check(rec)                  # must not raise
+    assert any("18" in p for p in problems)
+
+
 def _round(rid, to_par, par3, par4, par5, putts_total=None, putts_holes=0):
     cov_putts = ga.coverage_flag(putts_holes, 18)
     return {
@@ -112,6 +120,21 @@ def test_compare_putts_gated_on_coverage():
     priors = [_round("r1", 40, 2.8, 1.9, 1.8, putts_total=33, putts_holes=18),
               _round("r2", 36, 2.6, 1.7, 1.6, putts_total=None, putts_holes=0)]
     out = ga.compare_rounds(latest, priors)
+    assert out["dimensions"]["putts_per_hole"] == {"skipped": "coverage"}
+
+
+def test_compare_skips_putts_when_total_null():
+    latest = {"id": "r2", "scoring": {"to_par": 30,
+              "by_par_type": {"par3": 2.0, "par4": 1.5, "par5": 1.5}},
+              "coverage": {"scoring": "full", "putts": "partial"},
+              "dimensions": {"putts": {"total": None, "holes_tracked": 0,
+                                       "coverage": "partial"}}}
+    prior = {"id": "r1", "scoring": {"to_par": 40,
+             "by_par_type": {"par3": 2.8, "par4": 1.9, "par5": 1.8}},
+             "coverage": {"scoring": "full", "putts": "partial"},
+             "dimensions": {"putts": {"total": 30, "holes_tracked": 18,
+                                      "coverage": "partial"}}}
+    out = ga.compare_rounds(latest, [prior])        # must not raise
     assert out["dimensions"]["putts_per_hole"] == {"skipped": "coverage"}
 
 

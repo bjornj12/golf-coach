@@ -51,7 +51,6 @@ def scoring_from_holes(holes: list[dict[str, Any]]) -> dict[str, Any]:
     by_par_type = {
         f"par{par}": round(sum(diffs) / len(diffs), 2)
         for par, diffs in sorted(diffs_by_par.items())
-        if diffs
     }
     return {"to_par": to_par, "distribution": distribution, "by_par_type": by_par_type}
 
@@ -67,6 +66,17 @@ def self_check(record: dict[str, Any]) -> list[str]:
     holes = record.get("holes") or []
     if len(holes) not in (9, 18):
         problems.append(f"expected 9 or 18 holes, got {len(holes)}")
+
+    bad_holes = []
+    for i, h in enumerate(holes):
+        try:
+            int(h["score"])
+            int(h["par"])
+        except (KeyError, TypeError, ValueError):
+            bad_holes.append(h.get("hole", i + 1))
+    if bad_holes:
+        problems.append(f"holes with missing or unreadable par/score: {bad_holes}")
+        return problems
 
     gross = sum(int(h["score"]) for h in holes)
     stated_gross = (record.get("result") or {}).get("gross")
@@ -132,8 +142,12 @@ def compare_rounds(latest: dict[str, Any], priors: list[dict[str, Any]]) -> dict
         if lv is not None and pv is not None:
             out["scoring"][k] = _delta_block(k, float(lv), pv)
 
-    # Putts/hole — only if latest and ALL priors tracked putts.
-    if _tracked(latest, "putts") and all(_tracked(p, "putts") for p in priors):
+    # Putts/hole — only if latest and ALL priors tracked putts with a numeric total.
+    def _has_putts(r):
+        d = (r.get("dimensions") or {}).get("putts") or {}
+        return _tracked(r, "putts") and isinstance(d.get("total"), (int, float))
+
+    if _has_putts(latest) and all(_has_putts(p) for p in priors):
         def pph(r: dict[str, Any]) -> float:
             d = r["dimensions"]["putts"]
             return round(d["total"] / max(d["holes_tracked"], 1), 2)
