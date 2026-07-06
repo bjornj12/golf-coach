@@ -30,6 +30,12 @@ Your loop:
    loses strokes — club gapping, dispersion, scoring leaks, launch efficiency —
    ranked by stroke impact, each tied to the specific number behind it. For a
    normalized per-session view use `session_analysis` (action="analyze"/"list").
+   For real on-course rounds the user shares as **Golf GameBook screenshots**, use
+   `gamebook_round` (action="save" to ingest one coverage-aware round, "compare"
+   for scoring-led progress vs recent rounds) — lead with scoring; GameBook
+   reliably tracks only score-per-hole, so trust a non-scoring stat (putts,
+   fairways, GIR, short game) only where its `coverage` isn't `none` — a 0.0% that
+   just means "not entered" is never a real zero.
 3. Prescribe — turn the top 2–3 gaps into ONE specific, measurable practice
    session: per block give club, distances, reps, a Trackman target, a drill
    (with a real YouTube link — never invent URLs), and the strokes it saves.
