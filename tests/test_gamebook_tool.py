@@ -27,7 +27,7 @@ def _round(date="2026-06-09", gross=109):
 
 
 async def test_save_computes_scoring_and_stores():
-    res = await server.gamebook_round(action="save", round=_round())
+    res = await server.gamebook(action="save", round=_round())
     assert res["saved"] is True
     assert res["round"]["id"] == "2026-06-09"
     assert res["round"]["scoring"]["to_par"] == 39
@@ -37,36 +37,36 @@ async def test_save_computes_scoring_and_stores():
 
 async def test_save_rejects_inconsistent_read():
     bad = _round(gross=108)  # gross disagrees with hole sum (109)
-    res = await server.gamebook_round(action="save", round=bad)
+    res = await server.gamebook(action="save", round=bad)
     assert res["saved"] is False
     assert any("gross" in p for p in res["problems"])
 
 
 async def test_same_day_second_round_gets_suffixed_id():
-    await server.gamebook_round(action="save", round=_round(gross=109))
+    await server.gamebook(action="save", round=_round(gross=109))
     r2 = _round(gross=100)
     r2["holes"][0]["score"] = 6   # make hole sum 108, then fix gross to match
     r2["result"]["gross"] = 108
-    res = await server.gamebook_round(action="save", round=r2)
+    res = await server.gamebook(action="save", round=r2)
     assert res["round"]["id"] == "2026-06-09-2"
 
 
 async def test_list_and_get():
-    await server.gamebook_round(action="save", round=_round())
-    listed = await server.gamebook_round(action="list")
+    await server.gamebook(action="save", round=_round())
+    listed = await server.gamebook(action="list")
     assert listed["count"] == 1
     assert listed["items"][0]["to_par"] == 39
-    got = await server.gamebook_round(action="get", round_id="2026-06-09")
+    got = await server.gamebook(action="get", round_id="2026-06-09")
     assert got["result"]["gross"] == 109
 
 
 async def test_compare_two_rounds():
-    await server.gamebook_round(action="save", round=_round(date="2026-06-01", gross=109))
+    await server.gamebook(action="save", round=_round(date="2026-06-01", gross=109))
     better = _round(date="2026-06-09", gross=100)
     # lower all scores by making one par: change hole 16 from 9 to 3 (gross 103)
     better["holes"][15]["score"] = 3
     better["result"]["gross"] = 103
-    await server.gamebook_round(action="save", round=better)
-    cmp = await server.gamebook_round(action="compare")
+    await server.gamebook(action="save", round=better)
+    cmp = await server.gamebook(action="compare")
     assert cmp["round_id"] == "2026-06-09"
     assert cmp["scoring"]["to_par"]["direction"] == "better"
