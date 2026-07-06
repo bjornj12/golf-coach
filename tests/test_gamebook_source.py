@@ -124,11 +124,14 @@ async def test_rounds_normalizes_stored_round():
     assert r.dimensions["putts"].name == "putts"
     assert r.dimensions["putts"].value == 27
     assert r.dimensions["putts"].coverage == "partial"
+    assert r.dimensions["putts"].n == 12  # holes_tracked carried onto Metric.n
 
     assert r.dimensions["fairways"].value == 4  # falls back to `hit`
     assert r.dimensions["fairways"].coverage == "partial"
+    assert r.dimensions["fairways"].n == 6  # `tracked` carried onto Metric.n
 
     assert r.dimensions["bunkers"].value == 3  # falls back to `total`
+    assert r.dimensions["bunkers"].n is None  # no holes_tracked/tracked key
     assert r.dimensions["sand_save"].value is None  # explicit `value` key
     assert r.dimensions["sand_save"].coverage == "none"
 

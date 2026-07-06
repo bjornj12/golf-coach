@@ -31,6 +31,7 @@ def _round(
     *,
     putts_value: float = 27.0,
     putts_coverage: str = "full",
+    putts_n: int | None = 18,
     gir_coverage: str = "partial",
     fairways_coverage: str = "none",
 ) -> Round:
@@ -47,7 +48,7 @@ def _round(
             "by_par_type": by_par_type,
         },
         dimensions={
-            "putts": Metric(name="putts", value=putts_value, coverage=putts_coverage),
+            "putts": Metric(name="putts", value=putts_value, coverage=putts_coverage, n=putts_n),
             "gir": Metric(name="gir", value=1.0, coverage=gir_coverage),
             "fairways": Metric(name="fairways", value=4.0, coverage=fairways_coverage),
         },
@@ -188,6 +189,47 @@ def test_gamebook_analyze_putting_direction_none_when_a_prior_untracked():
     putting = [f for f in findings if f.skill_area == "putting"]
     assert len(putting) == 1
     assert putting[0].direction is None
+
+
+def test_gamebook_analyze_putting_direction_none_when_n_missing():
+    """A prior with real coverage but no `n` (holes-tracked) isn't usable as a
+    rate — the trend must not silently fall back to comparing raw totals."""
+    prior = _round(
+        "r0", "2026-06-01", 45, {"par3": 3.0, "par4": 2.0, "par5": 2.0},
+        putts_value=18.0, putts_coverage="partial", putts_n=None,
+    )
+    latest = _round(
+        "r1", "2026-06-09", 39, {"par3": 2.83, "par4": 1.88, "par5": 1.75},
+        putts_value=30.0, putts_coverage="full", putts_n=18,
+    )
+
+    findings = gamebook_analyzer.analyze([latest, prior])
+
+    putting = [f for f in findings if f.skill_area == "putting"]
+    assert len(putting) == 1
+    assert putting[0].direction is None
+
+
+def test_gamebook_analyze_putting_direction_uses_rate_not_raw_total():
+    """I3 (bug fix): the putting trend must compare putts-PER-HOLE, not raw
+    totals. Here the latest round's TOTAL putts is higher (30 > 18) but its
+    per-hole RATE is lower (30/18 = 1.67 vs 18/9 = 2.0) — proving the fix
+    reports "better" instead of the old buggy "worse" from comparing totals
+    across rounds with different holes_tracked."""
+    prior = _round(
+        "r0", "2026-06-01", 45, {"par3": 3.0, "par4": 2.0, "par5": 2.0},
+        putts_value=18.0, putts_coverage="partial", putts_n=9,
+    )
+    latest = _round(
+        "r1", "2026-06-09", 39, {"par3": 2.83, "par4": 1.88, "par5": 1.75},
+        putts_value=30.0, putts_coverage="full", putts_n=18,
+    )
+
+    findings = gamebook_analyzer.analyze([latest, prior])
+
+    putting = [f for f in findings if f.skill_area == "putting"]
+    assert len(putting) == 1
+    assert putting[0].direction == "better"
 
 
 def test_gamebook_analyze_by_par_type_findings():

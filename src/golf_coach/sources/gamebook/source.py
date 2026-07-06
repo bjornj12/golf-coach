@@ -106,7 +106,12 @@ class GameBookSource:
         """Stored dimension dicts don't share one value key (`value`, `total`,
         `hit`, ...) — pick the first present, in that priority order, so the
         common case (a single scalar) survives without losing the coverage
-        flag. Lossless-enough, not a full re-encoding of every stored key."""
+        flag. Lossless-enough, not a full re-encoding of every stored key.
+
+        Also carries the holes-tracked denominator (`holes_tracked` or
+        `tracked`, when present) onto `Metric.n` — downstream comparisons
+        (e.g. the putting trend) need it to compare a per-hole *rate* rather
+        than a raw total across rounds with different partial coverage."""
         if "value" in dim:
             value = dim["value"]
         elif "total" in dim:
@@ -115,7 +120,13 @@ class GameBookSource:
             value = dim["hit"]
         else:
             value = None
-        return Metric(name=name, value=value, coverage=dim.get("coverage", "none"))
+        if "holes_tracked" in dim:
+            n = dim["holes_tracked"]
+        elif "tracked" in dim:
+            n = dim["tracked"]
+        else:
+            n = None
+        return Metric(name=name, value=value, coverage=dim.get("coverage", "none"), n=n)
 
     # ----------------------------------------------------------------- #
     # sessions() / profile() / handicap() / club_gapping() — unsupported

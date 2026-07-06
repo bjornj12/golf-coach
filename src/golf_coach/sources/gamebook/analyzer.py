@@ -121,35 +121,54 @@ def _dimension_findings(latest: Round, priors: list[Round]) -> list[Finding]:
     return findings
 
 
-def _putting_direction(latest: Round, priors: list[Round]) -> _Direction | None:
-    """Putting trend from the normalized model directly (fewer putts = better).
+def _putts_per_hole(round_: Round) -> float | None:
+    """A round's putts-per-hole rate, or None if not usably tracked.
 
-    Compares the latest round's `dimensions["putts"].value` to the mean of the
-    priors' — but only when putts coverage is real (not "none") and a value is
-    present on the latest AND every prior. Otherwise the trend isn't
-    comparable, so we return None. (Computed here rather than via
-    `compare_rounds`, which reads raw `total`/`holes_tracked` keys the
-    normalized `Metric` doesn't carry.)
+    Requires real coverage (not "none"), a numeric total, and a positive
+    `n` (the holes-tracked denominator the source adapter carries onto
+    `Metric.n`). Comparing raw totals instead of this rate is exactly the bug
+    this guards against: under partial coverage, rounds track different
+    numbers of holes, so totals alone aren't comparable across rounds.
+    """
+    putts = round_.dimensions.get("putts")
+    if putts is None or putts.coverage == "none" or putts.value is None:
+        return None
+    if putts.n is None or putts.n <= 0:
+        return None
+    return putts.value / putts.n
+
+
+def _putting_direction(latest: Round, priors: list[Round]) -> _Direction | None:
+    """Putting trend from the normalized model, by per-hole *rate* (fewer
+    putts/hole = better) — not raw totals.
+
+    Compares the latest round's putts-per-hole to the mean of the priors' —
+    but only when putts coverage is real (not "none") and a usable rate
+    (numeric value + positive `n`) is present on the latest AND every prior.
+    Otherwise the trend isn't comparable, so we return None. (Computed here
+    rather than via `compare_rounds`, which operates on raw stored dicts, not
+    the normalized `Round`/`Metric` model.)
     """
     if not priors:
         return None
-    latest_putts = latest.dimensions.get("putts")
-    if latest_putts is None or latest_putts.coverage == "none" or latest_putts.value is None:
+    latest_rate = _putts_per_hole(latest)
+    if latest_rate is None:
         return None
 
-    prior_values: list[float] = []
+    prior_rates: list[float] = []
     for prior in priors:
-        putts = prior.dimensions.get("putts")
-        if putts is None or putts.coverage == "none" or putts.value is None:
+        rate = _putts_per_hole(prior)
+        if rate is None:
             return None
-        prior_values.append(putts.value)
+        prior_rates.append(rate)
 
-    prior_mean = _mean(prior_values)
-    if prior_mean is None:  # unreachable (prior_values is non-empty here), but keeps mypy happy
+    prior_mean = _mean(prior_rates)
+    if prior_mean is None:  # unreachable (prior_rates is non-empty here), but keeps mypy happy
         return None
-    if latest_putts.value < prior_mean:
+    latest_rounded = round(latest_rate, 2)
+    if latest_rounded < prior_mean:
         return "better"
-    if latest_putts.value > prior_mean:
+    if latest_rounded > prior_mean:
         return "worse"
     return "same"
 
