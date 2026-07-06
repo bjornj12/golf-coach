@@ -167,8 +167,14 @@ def grade_extraction(extracted: dict[str, Any], golden: dict[str, Any]) -> dict[
     holes_correct = 0
     for hole, gh in sorted(g_holes.items()):
         eh = e_holes.get(hole)
-        if eh and int(eh.get("par", -1)) == int(gh["par"]) \
-                and int(eh.get("score", -2)) == int(gh["score"]):
+        matched = False
+        if eh:
+            try:
+                matched = int(eh.get("par")) == int(gh["par"]) \
+                    and int(eh.get("score")) == int(gh["score"])
+            except (TypeError, ValueError):
+                matched = False
+        if matched:
             holes_correct += 1
         else:
             got = f"{eh.get('par')}/{eh.get('score')}" if eh else "—/—"
@@ -187,7 +193,8 @@ def grade_extraction(extracted: dict[str, Any], golden: dict[str, Any]) -> dict[
     if not scoring_ok:
         mismatches.append(
             f"scoring: to_par {es.get('to_par')} vs {gs.get('to_par')}, "
-            f"distribution {es.get('distribution')} vs {gs.get('distribution')}"
+            f"distribution {es.get('distribution')} vs {gs.get('distribution')}, "
+            f"by_par_type {es.get('by_par_type')} vs {gs.get('by_par_type')}"
         )
 
     gc = golden.get("coverage") or {}

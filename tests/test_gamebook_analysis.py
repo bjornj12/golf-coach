@@ -159,3 +159,22 @@ def test_grade_flags_wrong_coverage():
     report = ga.grade_extraction(extracted, golden)
     assert report["coverage_ok"] is False
     assert any("sand_save" in m for m in report["mismatches"])
+
+
+def test_grade_survives_null_hole_field():
+    golden = json.loads(GOLDEN.read_text())
+    extracted = json.loads(GOLDEN.read_text())
+    extracted["holes"][15]["score"] = None          # hole 16 unreadable
+    report = ga.grade_extraction(extracted, golden)  # must not raise
+    assert report["holes_correct"] == 17
+    assert report["score"] < 100.0
+    assert any("hole 16" in m for m in report["mismatches"])
+
+
+def test_grade_scoring_mismatch_message_names_by_par_type():
+    golden = json.loads(GOLDEN.read_text())
+    extracted = json.loads(GOLDEN.read_text())
+    extracted["scoring"]["by_par_type"]["par3"] = 9.99   # only by_par_type differs
+    report = ga.grade_extraction(extracted, golden)
+    assert report["scoring_ok"] is False
+    assert any("by_par_type" in m for m in report["mismatches"])
