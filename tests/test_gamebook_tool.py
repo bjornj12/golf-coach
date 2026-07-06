@@ -15,7 +15,7 @@ def _holes():
     pars = [4, 3, 4, 4, 3, 5, 3, 4, 5, 4, 4, 4, 5, 3, 5, 3, 4, 3]
     scores = [7, 5, 6, 6, 4, 6, 4, 5, 6, 5, 7, 5, 8, 6, 7, 9, 6, 7]
     return [{"hole": i + 1, "par": p, "score": s}
-            for i, (p, s) in enumerate(zip(pars, scores))]
+            for i, (p, s) in enumerate(zip(pars, scores, strict=True))]
 
 
 def _round(date="2026-06-09", gross=109):
