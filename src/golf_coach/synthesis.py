@@ -92,15 +92,19 @@ def align(findings: list[Finding]) -> CrossSourceView:
 async def synthesize() -> CrossSourceView:
     """Run each registered source's expert analyzer over its data, then align.
 
-    Skips a source that isn't registered, and skips a source whose fetch
-    raises rather than letting one unavailable source crash the whole
-    synthesis (e.g. GameBook has no rounds saved yet, or Trackman's token
-    expired) — analyzers lazily imported here to avoid import cycles with the
-    sources package.
+    Importing this module's `.sources` registry runs `sources/__init__`, which
+    registers the built-in sources — so `synthesize()` sees real data, not an
+    empty registry. Skips a source that isn't registered, and when a source's
+    fetch raises (e.g. GameBook has no rounds saved yet, or Trackman's token
+    expired) it records an observable `context_notes` entry instead of
+    crashing the whole synthesis — one unavailable source never takes the view
+    down. The note names only the exception type, never any secret. Analyzers
+    are imported lazily here to avoid import cycles with the sources package.
     """
     from .sources import registry
 
     findings: list[Finding] = []
+    failure_notes: list[str] = []
 
     gamebook_source = registry.get_source("gamebook")
     if gamebook_source is not None:
@@ -109,8 +113,8 @@ async def synthesize() -> CrossSourceView:
 
             rounds = await gamebook_source.rounds()
             findings.extend(gamebook_analyzer.analyze(rounds))
-        except Exception:
-            pass
+        except Exception as exc:  # one source failing must not sink the view
+            failure_notes.append(f"gamebook source unavailable: {type(exc).__name__}")
 
     trackman_source = registry.get_source("trackman")
     if trackman_source is not None:
@@ -118,8 +122,12 @@ async def synthesize() -> CrossSourceView:
             from .sources.trackman import analyzer as trackman_analyzer
 
             sessions = await trackman_source.sessions()
-            findings.extend(trackman_analyzer.analyze(sessions))
-        except Exception:
-            pass
+            gapping = await trackman_source.club_gapping()
+            findings.extend(trackman_analyzer.analyze(sessions, club_gapping=gapping))
+        except Exception as exc:
+            failure_notes.append(f"trackman source unavailable: {type(exc).__name__}")
 
-    return align(findings)
+    view = align(findings)
+    if failure_notes:
+        view.context_notes = [*view.context_notes, *failure_notes]
+    return view

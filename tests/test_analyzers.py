@@ -11,6 +11,7 @@ from __future__ import annotations
 from golf_coach.model import (
     GAMEBOOK_CONTEXT,
     TRACKMAN_CONTEXT,
+    ClubGapping,
     Course,
     Metric,
     Round,
@@ -28,6 +29,7 @@ def _round(
     to_par: int,
     by_par_type: dict[str, float],
     *,
+    putts_value: float = 27.0,
     putts_coverage: str = "full",
     gir_coverage: str = "partial",
     fairways_coverage: str = "none",
@@ -45,7 +47,7 @@ def _round(
             "by_par_type": by_par_type,
         },
         dimensions={
-            "putts": Metric(name="putts", value=27.0, coverage=putts_coverage),
+            "putts": Metric(name="putts", value=putts_value, coverage=putts_coverage),
             "gir": Metric(name="gir", value=1.0, coverage=gir_coverage),
             "fairways": Metric(name="fairways", value=4.0, coverage=fairways_coverage),
         },
@@ -149,6 +151,45 @@ def test_gamebook_analyze_full_coverage_putting_finding():
     assert putting[0].coverage == "full"
 
 
+def test_gamebook_analyze_putting_direction_better_from_normalized_model():
+    """I2: putting `direction` comes straight from the normalized model (fewer
+    putts on the latest round than the priors' mean => "better"), not from
+    `compare_rounds` (which reads raw keys the Metric doesn't carry)."""
+    prior = _round(
+        "r0", "2026-06-01", 45, {"par3": 3.0, "par4": 2.0, "par5": 2.0},
+        putts_value=33.0, putts_coverage="full",
+    )
+    latest = _round(
+        "r1", "2026-06-09", 39, {"par3": 2.83, "par4": 1.88, "par5": 1.75},
+        putts_value=29.0, putts_coverage="full",
+    )
+
+    findings = gamebook_analyzer.analyze([latest, prior])
+
+    putting = [f for f in findings if f.skill_area == "putting"]
+    assert len(putting) == 1
+    assert putting[0].direction == "better"
+
+
+def test_gamebook_analyze_putting_direction_none_when_a_prior_untracked():
+    """No putting direction unless putts coverage is real on latest AND every
+    prior — an untracked prior makes the trend non-comparable."""
+    prior = _round(
+        "r0", "2026-06-01", 45, {"par3": 3.0, "par4": 2.0, "par5": 2.0},
+        putts_value=33.0, putts_coverage="none",
+    )
+    latest = _round(
+        "r1", "2026-06-09", 39, {"par3": 2.83, "par4": 1.88, "par5": 1.75},
+        putts_value=29.0, putts_coverage="full",
+    )
+
+    findings = gamebook_analyzer.analyze([latest, prior])
+
+    putting = [f for f in findings if f.skill_area == "putting"]
+    assert len(putting) == 1
+    assert putting[0].direction is None
+
+
 def test_gamebook_analyze_by_par_type_findings():
     latest = _round("r1", "2026-06-09", 39, {"par3": 2.83, "par4": 1.88, "par5": 1.75})
 
@@ -206,3 +247,39 @@ def test_trackman_analyze_session_with_no_shots_or_metrics_emits_nothing():
     )
 
     assert trackman_analyzer.analyze([session]) == []
+
+
+def test_trackman_analyze_club_gapping_emits_gapping_finding():
+    """I1: a `ClubGapping` gives Trackman a real, shots-free cross-source
+    signal — a carry-spread `gapping` Finding — even with no sessions."""
+    gapping = ClubGapping(
+        source="trackman",
+        clubs=[
+            {"name": "Driver", "carry": 240.0, "retired": False},
+            {"name": "7 Iron", "carry": 150.0, "retired": False},
+            {"name": "Pitching Wedge", "carry": 110.0, "retired": False},
+            {"name": "Old 3 Wood", "carry": 200.0, "retired": True},  # ignored
+        ],
+    )
+
+    findings = trackman_analyzer.analyze([], club_gapping=gapping)
+
+    gap = [f for f in findings if f.skill_area == "gapping"]
+    assert len(gap) == 1
+    f = gap[0]
+    assert f.source == "trackman"
+    assert f.context == TRACKMAN_CONTEXT
+    assert f.coverage == "full"
+    assert f.metric == "club_carry_spread"
+    assert f.value == 130.0  # 240 (Driver) - 110 (PW); retired 3 Wood excluded
+    assert "Driver" in f.detail and "Pitching Wedge" in f.detail
+
+
+def test_trackman_analyze_without_club_gapping_emits_no_gapping_finding():
+    assert trackman_analyzer.analyze([]) == []
+    assert trackman_analyzer.analyze([], club_gapping=None) == []
+
+
+def test_trackman_analyze_empty_club_gapping_emits_nothing():
+    empty = ClubGapping(source="trackman", clubs=[])
+    assert trackman_analyzer.analyze([], club_gapping=empty) == []

@@ -58,7 +58,7 @@ def analyze(rounds: list[Round]) -> list[Finding]:
         comparison = compare_rounds(latest.model_dump(), [p.model_dump() for p in priors])
 
     findings = _scoring_findings(latest, comparison)
-    findings.extend(_dimension_findings(latest, comparison))
+    findings.extend(_dimension_findings(latest, priors))
     return findings
 
 
@@ -98,15 +98,13 @@ def _scoring_findings(latest: Round, comparison: dict[str, Any] | None) -> list[
     return findings
 
 
-def _dimension_findings(latest: Round, comparison: dict[str, Any] | None) -> list[Finding]:
+def _dimension_findings(latest: Round, priors: list[Round]) -> list[Finding]:
     findings: list[Finding] = []
     for dim_key, skill_area, metric, label in _DIMENSION_FINDINGS:
         metric_obj = latest.dimensions.get(dim_key)
         if metric_obj is None or metric_obj.coverage == "none":
             continue
-        direction = (
-            _direction(comparison, "dimensions", "putts_per_hole") if dim_key == "putts" else None
-        )
+        direction = _putting_direction(latest, priors) if dim_key == "putts" else None
         findings.append(
             Finding(
                 skill_area=skill_area,
@@ -121,6 +119,37 @@ def _dimension_findings(latest: Round, comparison: dict[str, Any] | None) -> lis
             )
         )
     return findings
+
+
+def _putting_direction(latest: Round, priors: list[Round]) -> _Direction | None:
+    """Putting trend from the normalized model directly (fewer putts = better).
+
+    Compares the latest round's `dimensions["putts"].value` to the mean of the
+    priors' — but only when putts coverage is real (not "none") and a value is
+    present on the latest AND every prior. Otherwise the trend isn't
+    comparable, so we return None. (Computed here rather than via
+    `compare_rounds`, which reads raw `total`/`holes_tracked` keys the
+    normalized `Metric` doesn't carry.)
+    """
+    if not priors:
+        return None
+    latest_putts = latest.dimensions.get("putts")
+    if latest_putts is None or latest_putts.coverage == "none" or latest_putts.value is None:
+        return None
+
+    prior_values: list[float] = []
+    for prior in priors:
+        putts = prior.dimensions.get("putts")
+        if putts is None or putts.coverage == "none" or putts.value is None:
+            return None
+        prior_values.append(putts.value)
+
+    prior_mean = sum(prior_values) / len(prior_values)
+    if latest_putts.value < prior_mean:
+        return "better"
+    if latest_putts.value > prior_mean:
+        return "worse"
+    return "same"
 
 
 def _direction(comparison: dict[str, Any] | None, block: str, key: str) -> _Direction | None:

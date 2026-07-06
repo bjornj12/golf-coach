@@ -13,21 +13,70 @@ from __future__ import annotations
 
 from typing import Literal
 
-from ...model import TRACKMAN_CONTEXT, Finding, Session
+from ...model import TRACKMAN_CONTEXT, ClubGapping, Finding, Session
 
 
-def analyze(sessions: list[Session]) -> list[Finding]:
-    """Emit context-tagged Findings from Trackman shot/metric data.
+def analyze(
+    sessions: list[Session], club_gapping: ClubGapping | None = None
+) -> list[Finding]:
+    """Emit context-tagged Findings from Trackman shot/metric + gapping data.
 
     Every Finding here is `source="trackman"`, `context=TRACKMAN_CONTEXT`,
     `coverage="full"`. A session with no shots and no usable metrics
-    contributes nothing.
+    contributes nothing. `club_gapping` (from `Source.club_gapping()`) is a
+    shots-free cross-source signal: when provided, a per-club carry-spread
+    `gapping` Finding is emitted so Trackman contributes even before shot-level
+    enrichment lands. Empty inputs contribute nothing.
     """
     findings: list[Finding] = []
     for session in sessions:
         findings.extend(_gapping_findings(session))
         findings.extend(_dispersion_findings(session))
+    if club_gapping is not None:
+        findings.extend(_club_gapping_findings(club_gapping))
     return findings
+
+
+def _club_gapping_findings(gapping: ClubGapping) -> list[Finding]:
+    """One carry-spread `gapping` Finding from the per-club distance table.
+
+    Uses the carry distances `ClubGapping` already carries (no shots needed):
+    the spread between the shortest- and longest-carrying non-retired club, a
+    factual gapping measurement the cross-source coach can weigh against
+    GameBook's on-course scoring.
+    """
+    carries: list[tuple[str, float]] = []
+    for club in gapping.clubs:
+        if club.get("retired"):
+            continue
+        name = club.get("name")
+        carry = club.get("carry")
+        if name and isinstance(carry, (int, float)):
+            carries.append((str(name), float(carry)))
+
+    if not carries:
+        return []
+
+    carries.sort(key=lambda c: c[1])
+    lo_name, lo = carries[0]
+    hi_name, hi = carries[-1]
+    spread = round(hi - lo, 2)
+    detail = (
+        f"{len(carries)} clubs; carry spans {lo_name} {lo}m .. {hi_name} {hi}m "
+        f"(spread {spread}m)"
+    )
+    return [
+        Finding(
+            skill_area="gapping",
+            source="trackman",
+            context=TRACKMAN_CONTEXT,
+            metric="club_carry_spread",
+            value=spread,
+            unit="m",
+            coverage="full",
+            detail=detail,
+        )
+    ]
 
 
 def _gapping_findings(session: Session) -> list[Finding]:

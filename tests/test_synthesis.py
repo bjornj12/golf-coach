@@ -277,4 +277,10 @@ async def test_synthesize_skips_source_that_raises_without_crashing():
     finally:
         registry.clear()
 
-    assert view == CrossSourceView()
+    # The view must not crash, must carry no findings from the failed source,
+    # and must record the failure observably (I3) — naming only the exception
+    # type, never a secret.
+    assert isinstance(view, CrossSourceView)
+    assert view.by_skill_area == {}
+    assert view.cross_source_deltas == []
+    assert view.context_notes == ["gamebook source unavailable: RuntimeError"]
