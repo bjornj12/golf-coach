@@ -20,6 +20,7 @@ from ...model import (
     GAMEBOOK_CONTEXT,
     ClubGapping,
     Course,
+    Finding,
     Handicap,
     Hole,
     Metric,
@@ -131,6 +132,16 @@ class GameBookSource:
 
     async def club_gapping(self) -> ClubGapping | None:
         return None
+
+    # ----------------------------------------------------------------- #
+    # analyze() — the per-source expert analyzer, for `synthesis.synthesize()`
+    # ----------------------------------------------------------------- #
+
+    async def analyze(self) -> list[Finding]:
+        from . import analyzer as gamebook_analyzer  # lazy: avoid import cycles
+
+        rounds = await self.rounds()
+        return gamebook_analyzer.analyze(rounds)
 
 
 # Module-level singleton, registered at import time (see registry.register).

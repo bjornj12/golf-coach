@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Protocol, runtime_checkable
 
-from ..model import ClubGapping, Handicap, Profile, Round, Session, SourceContext
+from ..model import ClubGapping, Finding, Handicap, Profile, Round, Session, SourceContext
 
 Capability = Literal["rounds", "sessions", "profile", "handicap", "clubs", "auth"]
 
@@ -36,3 +36,8 @@ class Source(Protocol):
     async def handicap(self) -> Handicap | None: ...
 
     async def club_gapping(self) -> ClubGapping | None: ...
+
+    async def analyze(self) -> list[Finding]:
+        """Fetch this source's data and run its expert analyzer, returning
+        findings ([] if unavailable)."""
+        ...

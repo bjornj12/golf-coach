@@ -22,6 +22,7 @@ from ...model import (
     TRACKMAN_CONTEXT,
     ClubGapping,
     Course,
+    Finding,
     Handicap,
     Hole,
     Metric,
@@ -268,6 +269,24 @@ class TrackmanSource:
             "total_std_dev": stats.get("standardDeviationTotal"),
             "n_shots": fmd.get("numberOfShots"),
         }
+
+    # ----------------------------------------------------------------- #
+    # analyze() — the per-source expert analyzer, for `synthesis.synthesize()`
+    # ----------------------------------------------------------------- #
+
+    async def analyze(self) -> list[Finding]:
+        """Run the Trackman expert analyzer over this source's current data.
+
+        Deliberately does NOT fetch `sessions()` here: `sessions()` always
+        comes back with `shots=[]` (shot-level detail needs a per-session
+        fetch — see `_normalize_session`), so the analyzer would find nothing
+        from it. That's a follow-up (shot-level session enrichment); gapping
+        is the current Trackman signal, so it's the only fetch here.
+        """
+        from . import analyzer as trackman_analyzer  # lazy: avoid import cycles
+
+        gapping = await self.club_gapping()
+        return trackman_analyzer.analyze([], club_gapping=gapping)
 
 
 # Module-level singleton, registered at import time (see registry.register).

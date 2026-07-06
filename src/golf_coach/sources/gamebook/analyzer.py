@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from ...gamebook_analysis import compare_rounds
+from ...gamebook_analysis import _mean, compare_rounds
 from ...model import GAMEBOOK_CONTEXT, Finding, Round
 
 _SkillArea = Literal["driving", "approach", "short_game", "putting", "scoring", "gapping"]
@@ -144,7 +144,9 @@ def _putting_direction(latest: Round, priors: list[Round]) -> _Direction | None:
             return None
         prior_values.append(putts.value)
 
-    prior_mean = sum(prior_values) / len(prior_values)
+    prior_mean = _mean(prior_values)
+    if prior_mean is None:  # unreachable (prior_values is non-empty here), but keeps mypy happy
+        return None
     if latest_putts.value < prior_mean:
         return "better"
     if latest_putts.value > prior_mean:

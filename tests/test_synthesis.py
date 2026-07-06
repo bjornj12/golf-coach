@@ -189,6 +189,12 @@ class _FakeTrackmanSource:
     async def club_gapping(self) -> ClubGapping | None:
         return None
 
+    async def analyze(self) -> list[Finding]:
+        from golf_coach.sources.trackman import analyzer as trackman_analyzer
+
+        sessions = await self.sessions()
+        return trackman_analyzer.analyze(sessions)
+
 
 class _FakeGameBookSource:
     name = "gamebook"
@@ -220,6 +226,12 @@ class _FakeGameBookSource:
     async def club_gapping(self) -> ClubGapping | None:
         return None
 
+    async def analyze(self) -> list[Finding]:
+        from golf_coach.sources.gamebook import analyzer as gamebook_analyzer
+
+        rounds = await self.rounds()
+        return gamebook_analyzer.analyze(rounds)
+
 
 class _RaisingSource:
     name = "gamebook"
@@ -242,6 +254,9 @@ class _RaisingSource:
 
     async def club_gapping(self) -> ClubGapping | None:
         return None
+
+    async def analyze(self) -> list[Finding]:
+        raise RuntimeError("boom")
 
 
 async def test_synthesize_returns_empty_view_when_no_sources_registered():

@@ -17,14 +17,39 @@ CLAUDE.md's core boundary).
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from .model import CrossSourceView, Finding
 
-_CONTEXT_MIX_NOTE = (
-    "Trackman findings are clean-room (flat lie, no pressure); GameBook findings "
-    "are on-course (variable lies, weather, pressure) — weigh them accordingly."
-)
+_GENERIC_SETTING_LABELS = {
+    "controlled": "the controlled-setting source(s)",
+    "on_course": "the on-course source(s)",
+}
+
+
+def _setting_label(findings: list[Finding], setting: str) -> str:
+    """Human-readable label for the distinct sources that captured `findings`
+    under `setting` (e.g. "controlled" or "on_course").
+
+    Derived from the findings actually present rather than a hardcoded
+    product name, so a future third source is described correctly too. Falls
+    back to a generic phrase if (unexpectedly) no source matches.
+    """
+    names = sorted({f.source for f in findings if f.context.setting == setting})
+    if not names:
+        return _GENERIC_SETTING_LABELS.get(setting, f"the {setting} source(s)")
+    return "/".join(name.capitalize() for name in names)
+
+
+def _context_mix_note(findings: list[Finding]) -> str:
+    controlled = _setting_label(findings, "controlled")
+    on_course = _setting_label(findings, "on_course")
+    return (
+        f"{controlled} findings are clean-room (flat lie, no pressure); "
+        f"{on_course} findings are on-course (variable lies, weather, pressure) — "
+        "weigh them accordingly."
+    )
 
 
 def align(findings: list[Finding]) -> CrossSourceView:
@@ -70,8 +95,11 @@ def align(findings: list[Finding]) -> CrossSourceView:
         }
         settings = {finding.context.setting for finding in first_by_source.values()}
         if "controlled" in settings and "on_course" in settings:
+            delta_findings = list(first_by_source.values())
+            controlled = _setting_label(delta_findings, "controlled")
+            on_course = _setting_label(delta_findings, "on_course")
             delta["context_note"] = (
-                f"{area}: Trackman is controlled/flat-lie; GameBook is on-course — "
+                f"{area}: {controlled} is controlled/flat-lie; {on_course} is on-course — "
                 "a gap here points at lies/pressure/course-management, not pure mechanics."
             )
         cross_source_deltas.append(delta)
@@ -79,7 +107,7 @@ def align(findings: list[Finding]) -> CrossSourceView:
     context_notes: list[str] = []
     all_settings = {finding.context.setting for finding in findings}
     if "controlled" in all_settings and "on_course" in all_settings:
-        context_notes.append(_CONTEXT_MIX_NOTE)
+        context_notes.append(_context_mix_note(findings))
 
     return CrossSourceView(
         by_skill_area=by_skill_area,
@@ -90,42 +118,34 @@ def align(findings: list[Finding]) -> CrossSourceView:
 
 
 async def synthesize() -> CrossSourceView:
-    """Run each registered source's expert analyzer over its data, then align.
+    """Run each registered source's own `analyze()` concurrently, then align.
 
     Importing this module's `.sources` registry runs `sources/__init__`, which
     registers the built-in sources — so `synthesize()` sees real data, not an
-    empty registry. Skips a source that isn't registered, and when a source's
-    fetch raises (e.g. GameBook has no rounds saved yet, or Trackman's token
-    expired) it records an observable `context_notes` entry instead of
-    crashing the whole synthesis — one unavailable source never takes the view
-    down. The note names only the exception type, never any secret. Analyzers
-    are imported lazily here to avoid import cycles with the sources package.
+    empty registry. Polymorphic over whatever is registered: no source names
+    are hardcoded here, so adding a new source is a one-module change (just
+    implement `Source.analyze()`). When a source's `analyze()` raises (e.g.
+    GameBook has no rounds saved yet, or Trackman's token expired) it records
+    an observable `context_notes` entry instead of crashing the whole
+    synthesis — one unavailable source never takes the view down. The note
+    names only the exception type, never any secret.
     """
     from .sources import registry
 
-    findings: list[Finding] = []
+    sources = registry.available_sources()
     failure_notes: list[str] = []
 
-    gamebook_source = registry.get_source("gamebook")
-    if gamebook_source is not None:
+    async def _safe(source: Any) -> list[Finding]:
         try:
-            from .sources.gamebook import analyzer as gamebook_analyzer
-
-            rounds = await gamebook_source.rounds()
-            findings.extend(gamebook_analyzer.analyze(rounds))
+            return await source.analyze()
         except Exception as exc:  # one source failing must not sink the view
-            failure_notes.append(f"gamebook source unavailable: {type(exc).__name__}")
+            failure_notes.append(f"{source.name} source unavailable: {type(exc).__name__}")
+            return []
 
-    trackman_source = registry.get_source("trackman")
-    if trackman_source is not None:
-        try:
-            from .sources.trackman import analyzer as trackman_analyzer
-
-            sessions = await trackman_source.sessions()
-            gapping = await trackman_source.club_gapping()
-            findings.extend(trackman_analyzer.analyze(sessions, club_gapping=gapping))
-        except Exception as exc:
-            failure_notes.append(f"trackman source unavailable: {type(exc).__name__}")
+    results = await asyncio.gather(
+        *(_safe(source) for source in sources), return_exceptions=False
+    )
+    findings: list[Finding] = [finding for result in results for finding in result]
 
     view = align(findings)
     if failure_notes:

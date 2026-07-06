@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import Literal
 
+from ...analysis import _avg, _std
 from ...model import TRACKMAN_CONTEXT, ClubGapping, Finding, Session
 
 
@@ -89,7 +90,7 @@ def _gapping_findings(session: Session) -> list[Finding]:
     if per_club:
         findings = []
         for club, carries in sorted(per_club.items()):
-            avg = _mean(carries)
+            avg = _avg(carries)
             findings.append(
                 Finding(
                     skill_area="gapping",
@@ -135,7 +136,9 @@ def _dispersion_findings(session: Session) -> list[Finding]:
     findings = []
     for skill_area in sorted(by_skill_area):
         sides = by_skill_area[skill_area]
-        dispersion = _stdev(sides)
+        # `_std` is population stdev for >=2 values but only defined for >=1;
+        # a lone shot's "dispersion" is just its own magnitude from center.
+        dispersion = _std(sides) if len(sides) >= 2 else round(abs(sides[0]), 2)
         findings.append(
             Finding(
                 skill_area=skill_area,
@@ -153,15 +156,3 @@ def _dispersion_findings(session: Session) -> list[Finding]:
 
 def _dispersion_skill_area(club: str | None) -> Literal["driving", "approach"]:
     return "driving" if club and "driver" in club.lower() else "approach"
-
-
-def _mean(values: list[float]) -> float | None:
-    return round(sum(values) / len(values), 2) if values else None
-
-
-def _stdev(values: list[float]) -> float:
-    """Population stdev for >=2 values; the plain magnitude for a single shot."""
-    if len(values) < 2:
-        return round(abs(values[0]), 2)
-    mean = sum(values) / len(values)
-    return round((sum((v - mean) ** 2 for v in values) / len(values)) ** 0.5, 2)

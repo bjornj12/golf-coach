@@ -10,7 +10,15 @@ from typing import Any
 
 import pytest
 
-from golf_coach.model import GAMEBOOK_CONTEXT, ClubGapping, Handicap, Profile, Round, Session
+from golf_coach.model import (
+    GAMEBOOK_CONTEXT,
+    ClubGapping,
+    Finding,
+    Handicap,
+    Profile,
+    Round,
+    Session,
+)
 from golf_coach.sources import registry
 from golf_coach.sources.base import Source
 
@@ -39,6 +47,9 @@ class FakeSource:
 
     async def club_gapping(self) -> ClubGapping | None:
         return None
+
+    async def analyze(self) -> list[Finding]:
+        return []
 
 
 @pytest.fixture(autouse=True)
