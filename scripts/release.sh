@@ -22,8 +22,8 @@
 #
 set -euo pipefail
 
-REPO="bjornj12/trackman-mcp-client"
-PKG="trackman-mcp"
+REPO="bjornj12/golf-coach"
+PKG="golf-coach"
 WORKFLOW="publish.yml"
 ENVIRONMENT="pypi"
 
@@ -80,7 +80,7 @@ edits = [
     ("mcpb/manifest.json",              [(r'"version": "%s"' % re.escape(cur), '"version": "%s"' % new, 1)]),
     ("mcpb/pyproject.toml", [
         (r'(?m)^version = "%s"' % re.escape(cur), 'version = "%s"' % new, 1),
-        (r'trackman-mcp\[login\]>=%s' % re.escape(cur), 'trackman-mcp[login]>=%s' % new, 1),
+        (r'golf-coach\[login\]>=%s' % re.escape(cur), 'golf-coach[login]>=%s' % new, 1),
     ]),
 ]
 for path, pairs in edits:

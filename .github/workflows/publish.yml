@@ -70,12 +70,12 @@ jobs:
         run: |
           npm install -g @anthropic-ai/mcpb
           mkdir -p dist
-          mcpb pack mcpb dist/trackman-golf.mcpb
+          mcpb pack mcpb dist/golf-coach.mcpb
 
       - name: Publish GitHub Release with the .mcpb attached
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/trackman-golf.mcpb \
-            --title "trackman-mcp $GITHUB_REF_NAME" --generate-notes \
-          || gh release upload "$GITHUB_REF_NAME" dist/trackman-golf.mcpb --clobber
+          gh release create "$GITHUB_REF_NAME" dist/golf-coach.mcpb \
+            --title "golf-coach $GITHUB_REF_NAME" --generate-notes \
+          || gh release upload "$GITHUB_REF_NAME" dist/golf-coach.mcpb --clobber
