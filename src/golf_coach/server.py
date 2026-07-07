@@ -29,8 +29,10 @@ mcp = FastMCP(
         "the coaching prompts this server provides. Call `auth` (action='status') "
         "first. If it reports the user isn't signed in or the session expired, "
         "call `auth` (action='login') — it opens a browser window for a one-time "
-        "sign-in (no terminal or token needed) — then retry. Never ask the user "
-        "to paste a token or run terminal commands unless they ask how."
+        "sign-in and returns immediately with `pending: true`; the window stays "
+        "open until the user finishes. After they say they're done, call `auth` "
+        "(action='status') to confirm, then retry. Never ask the user to paste a "
+        "token or run terminal commands unless they ask how."
     ),
 )
 
@@ -42,6 +44,62 @@ _WRITE_LOCAL = {"readOnlyHint": False, "idempotentHint": False, "openWorldHint":
 
 # Seconds to wait for a silent refresh before giving up (dead session fails fast).
 SILENT_REFRESH_TIMEOUT = 30.0
+
+# The in-flight interactive browser login, if any. An interactive sign-in takes
+# minutes (the human has to type credentials + Apple/Google 2FA), far longer than
+# an MCP client's per-request timeout. If we awaited it inside the `auth` tool
+# call, the client would cancel the request and the cancellation would tear the
+# sign-in window down (see login.py's `finally: context.close()`). So we run it as
+# a detached background task on the server's own event loop — it outlives the tool
+# call. A module-level reference keeps it from being garbage-collected mid-flight.
+_LOGIN_TASK: asyncio.Task[None] | None = None
+
+
+def _login_in_progress() -> bool:
+    """True while a background interactive login is still running."""
+    return _LOGIN_TASK is not None and not _LOGIN_TASK.done()
+
+
+def _has_saved_browser_session() -> bool:
+    """True if a persisted browser profile from a prior login exists.
+
+    Lets a first-time user skip the silent-refresh attempt so the sign-in window
+    opens immediately instead of after `SILENT_REFRESH_TIMEOUT`. Constructs the
+    path directly — `token_store.browser_profile_dir()` would *create* it.
+    """
+    try:
+        from . import token_store
+
+        profile = token_store.cache_dir() / "browser-profile"
+        return profile.is_dir() and any(profile.iterdir())
+    except Exception:
+        return False
+
+
+async def _background_login() -> None:
+    """Capture a token off the tool-call clock: silent refresh, else a window.
+
+    Runs detached from the `auth` request so the client's request timeout can't
+    cancel it (and thus can't close the browser). Progress and errors go to
+    stderr via login.py; the captured token lands in the local token store, which
+    `auth(action='status')` then reads. Never raises — a failed sign-in just
+    leaves no token, and status will report "not signed in".
+    """
+    from .login import capture_token
+
+    # Returning user: refresh silently while the saved session is valid. Skip for
+    # a first-time user (no saved profile) so the window isn't delayed for nothing.
+    if _has_saved_browser_session():
+        try:
+            await capture_token(headless=True, timeout_seconds=SILENT_REFRESH_TIMEOUT)
+            return
+        except Exception:
+            pass  # session expired — fall through to an interactive sign-in.
+    try:
+        # First run / expired session: open a window for an interactive login.
+        await capture_token(headless=False)
+    except Exception:
+        pass  # already reported to stderr; status will show "not signed in".
 
 
 async def _try_silent_refresh() -> bool:
@@ -112,34 +170,59 @@ async def _auth_status() -> dict[str, Any]:
 
 
 async def _auth_login(open_browser: bool) -> dict[str, Any]:
-    from .login import TrackmanLoginError, capture_token
+    global _LOGIN_TASK
+    from .login import capture_token
 
-    # 1) Silent refresh (fast; works while the saved session is valid).
-    try:
-        await capture_token(headless=True, timeout_seconds=SILENT_REFRESH_TIMEOUT)
-    except Exception:
-        # 2) Session likely expired — open a window for an interactive sign-in.
-        if not open_browser:
+    # 1) Already signed in? Confirm instantly, no browser. (Fast, no long await.)
+    config = Config.from_env()
+    if config.has_token:
+        try:
+            async with TrackmanClient(config) as client:
+                info = await client.whoami()
+            return {
+                "success": True,
+                "name": info.get("name") or info.get("sub"),
+                "message": "Already signed in. The MCP will use this automatically.",
+            }
+        except TrackmanAuthError:
+            pass  # token expired — fall through to (re)authenticate.
+
+    # 2) A sign-in window is already open — don't spawn a second one.
+    if _login_in_progress():
+        return {
+            "success": None,
+            "pending": True,
+            "message": "A Trackman sign-in is already in progress. Finish signing "
+                       "in the browser window that's open, then ask me to check "
+                       "auth(action='status').",
+        }
+
+    # 3) Non-interactive caller: try a silent refresh only (no window).
+    if not open_browser:
+        try:
+            await capture_token(headless=True, timeout_seconds=SILENT_REFRESH_TIMEOUT)
+        except Exception:
             return {
                 "success": False,
                 "message": "Saved session expired and open_browser is false. "
                            "Call auth(action='login', open_browser=true), or run "
                            "`golf-coach login` in a terminal.",
             }
-        try:
-            await capture_token(headless=False)
-        except TrackmanLoginError as exc:
-            return {"success": False, "message": f"Login didn't complete: {exc}"}
+        return {"success": True,
+                "message": "Refreshed the saved session. The MCP will use it."}
 
-    config = Config.from_env()
-    try:
-        async with TrackmanClient(config) as client:
-            info = await client.whoami()
-    except TrackmanAuthError:
-        return {"success": False,
-                "message": "Captured a token but it was rejected — try again."}
-    return {"success": True, "name": info.get("name") or info.get("subject"),
-            "message": "Signed in. The MCP will use this automatically."}
+    # 4) Interactive sign-in: run it in a detached background task so the client's
+    # request timeout can't cancel the request and close the browser. Return now;
+    # the user signs in at their own pace and we confirm via auth(action='status').
+    _LOGIN_TASK = asyncio.create_task(_background_login())
+    return {
+        "success": None,
+        "pending": True,
+        "message": "Opening a browser window to sign in to Trackman. Sign in there "
+                   "(e.g. with Apple) — the window stays open for a few minutes and "
+                   "won't close on its own. When you're done, tell me and I'll "
+                   "confirm with auth(action='status').",
+    }
 
 
 @mcp.tool(annotations=_WRITE_API)
@@ -153,9 +236,13 @@ async def auth(
     Actions:
     - `status` (default): report whether the current token works and who you're
       signed in as. Use this first; it never opens anything.
-    - `login`: (re)authenticate. Tries a silent refresh of the saved browser
-      session first; if that's expired and `open_browser` is true, opens a window
-      to sign in once. Use when `status` says expired/not signed in.
+    - `login`: (re)authenticate. If already signed in, confirms instantly. If the
+      saved session expired and `open_browser` is true, it opens a sign-in window
+      and returns immediately with `pending: true` — the window stays open for a
+      few minutes and the user signs in at their own pace (the browser is driven
+      by a background task, so it won't close on its own). After the user says
+      they've finished, call `auth(action='status')` to confirm. Do NOT re-call
+      `login` while one is pending — it won't open a second window.
 
     `source` selects the data source to authenticate; only `trackman` needs auth
     (other sources, e.g. GameBook, are local). Never echoes the token.

@@ -40,7 +40,9 @@ one-time [Authentication](#authentication-one-time) step.
 2. Open **Claude Desktop → Settings → Extensions**, drag the file in (or
    double-click it), and click **Install**. Leave the token field **blank**.
 3. In a chat, say **"log in to Trackman"** → a **browser window opens** → sign in
-   once with your Trackman email + password. That's it.
+   once with your Trackman email + password (Apple / Google sign-in works too).
+   The window **stays open until you finish** — take your time, it won't close on
+   its own. When you're done, tell Claude and it confirms you're signed in.
 4. Ask Claude: *"What's my Trackman handicap?"*
 
 Nothing to install and no config to edit — Claude Desktop runs everything and
@@ -92,7 +94,10 @@ stored by the tool, and nothing leaves your machine.
 ### Easiest — just ask Claude to log in (Claude Desktop / Claude Code)
 
 Say **"log in to Trackman."** A browser window opens (an isolated profile, not
-your normal Chrome); sign in once. The token caches at `~/.golf-coach/token.json`
+your normal Chrome); sign in once, at your own pace — the window is driven by a
+background task, so it **stays open until you're done** and won't be closed out
+from under you (even a slow Apple/Google 2FA is fine). When you've finished,
+tell Claude and it confirms. The token caches at `~/.golf-coach/token.json`
 (mode `0600`) and the MCP uses it automatically from then on. No terminal, no
 token to copy — the extension fetches a browser itself if you don't have one.
 
