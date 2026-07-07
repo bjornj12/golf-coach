@@ -80,7 +80,10 @@ edits = [
     ("mcpb/manifest.json",              [(r'"version": "%s"' % re.escape(cur), '"version": "%s"' % new, 1)]),
     ("mcpb/pyproject.toml", [
         (r'(?m)^version = "%s"' % re.escape(cur), 'version = "%s"' % new, 1),
-        (r'golf-coach\[login\]>=%s' % re.escape(cur), 'golf-coach[login]>=%s' % new, 1),
+        # Bump the runtime dependency pin whatever version it currently floors at
+        # (it can drift from `cur` if a past release didn't advance it), so the
+        # freshly-built .mcpb always pulls the package version it ships with.
+        (r'golf-coach\[login\]>=\d+\.\d+\.\d+', 'golf-coach[login]>=%s' % new, 1),
     ]),
 ]
 for path, pairs in edits:
