@@ -1,7 +1,7 @@
 {
   "name": "golf-coach",
   "description": "Golf Coach — connect to Trackman with your own login, expose your stats as MCP tools, and coach from them with bundled skills.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "author": { "name": "Bjorn Jonsson", "email": "bjorn@avo.sh" },
   "homepage": "https://github.com/bjornj12/golf-coach",
   "repository": "https://github.com/bjornj12/golf-coach",
