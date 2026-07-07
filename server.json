@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.bjornj12/golf-coach",
-  "description": "Golf Coach: a golf coach powered by your own Trackman stats — handicap, rounds, shots, and club gapping — exposed as MCP tools to diagnose and coach from.",
+  "description": "A stats-driven golf coach: Trackman + on-course rounds, turned into a practice plan.",
   "version": "0.5.0",
   "repository": {
     "url": "https://github.com/bjornj12/golf-coach",
@@ -13,7 +13,9 @@
       "registryBaseUrl": "https://pypi.org",
       "identifier": "golf-coach",
       "version": "0.5.0",
-      "transport": { "type": "stdio" },
+      "transport": {
+        "type": "stdio"
+      },
       "environmentVariables": [
         {
           "name": "TRACKMAN_TOKEN",
