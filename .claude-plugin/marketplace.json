@@ -3,7 +3,7 @@
   "owner": { "name": "Bjorn Jonsson", "email": "bjorn@avo.sh" },
   "metadata": {
     "description": "Single-plugin marketplace for Golf Coach — the golf-coach MCP + coaching skills.",
-    "version": "0.4.0"
+    "version": "0.5.0"
   },
   "plugins": [
     {
