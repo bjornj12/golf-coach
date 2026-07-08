@@ -75,6 +75,14 @@ class Shot(BaseModel):
     landing_angle: float | None = None
     max_height: float | None = None
     hang_time: float | None = None
+    # Club-delivery metrics (what the club did at impact) — the "why" behind the
+    # ball flight. All optional; a source fills what it measures.
+    attack_angle: float | None = None  # deg; + = up (driver wants +)
+    club_path: float | None = None  # deg; - = out-to-in, + = in-to-out
+    face_angle: float | None = None  # deg to target; - = closed (left), + = open (right)
+    dynamic_loft: float | None = None  # deg presented at impact
+    back_spin: float | None = None  # rpm
+    side_spin: float | None = None  # rpm; - = left, + = right
 
 
 class Course(BaseModel):
