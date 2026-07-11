@@ -82,6 +82,10 @@ Return ONLY this summary — not the raw session payloads.
 **Key stats** (metric units — m/s, meters):
 <for a game: to_par, GIR, putts, drive avg, course difficulty>
 <for practice: stroke count, duration, clubs used, avg carry, notable per-club>
+<if metrics.has_club_data: per-club **club delivery** from per_club[club].delivery —
+  club path (+ club_path_std), face angle, face-to-path, attack angle, spin axis.
+  Bay/sim sessions (shot analysis, sim, map-my-bag) carry this; range-radar
+  sessions do not, so omit the line entirely when has_club_data is false.>
 
 **Normalized vs your prior sessions** (n = <history size>):
 <for each normalized metric: value, mean, delta, and whether better/worse>
