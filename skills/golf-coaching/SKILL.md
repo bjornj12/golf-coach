@@ -17,10 +17,14 @@ so the golfer can come back and ask "what's today's training?"
   view + top-down shape — plus swing path, targets, and the Fix-it drill links.
   See the `trackman-visualizer` skill. Never give text-only coaching. Animated
   flight + videos is the standard.
-- **EVERY drill gets a video link — ideally several.** Never hand over a drill
-  without at least one verified YouTube link; prefer 2–3 per drill — pull from
-  `drill-library`, or live-search and verify (never invent URLs). A drill with
-  no video is incomplete.
+- **Give every drill a verified video link when you can — never a fabricated
+  one.** When a web-search tool is available, attach 2–3 real, verified YouTube
+  links per drill (from `drill-library`'s seeded set, or a live search you
+  verify). When no web-search tool is available (e.g. some Claude Desktop
+  setups), use the seeded `drill-library` link if the drill has one, otherwise
+  hand over the **fully-specified drill with no link** — reps, distances,
+  targets, and feel still stand. A drill is complete without a video; an invented
+  URL never is. **Never make up a link to satisfy this rule.**
 - **Grade automatically.** With a saved plan and a recent session for its target
   club, run `training_plan(action="verify")` and show progress rather than
   offering to.
@@ -78,32 +82,37 @@ From the bundle:
   average (use the analyzer's normalized deltas); and a **practice-habit reality
   check** — is he actually training, or mostly warming up? (Don't credit warm-ups
   as improvement work.)
-- **Where strokes are lost — ranked by stroke impact, highest first:**
-  - **Gapping:** adjacent clubs that overlap (< ~8–10 m apart) or holes in the
-    set (> ~18–20 m), from `trackman(action="clubs")`.
-  - **Dispersion:** wide carry/side scatter, especially on scoring clubs
-    (wedges, short irons).
-  - **Scoring leaks:** low GIR, missed fairways, high putts/round, and where the
-    doubles+ come from — read off the `synthesize()` view where a GameBook
-    on-course round is available, since it carries real playing conditions.
-  - **Launch inefficiency:** poor smash / off spin if present.
-  Tie every gap to the specific number behind it. If data is too thin to judge
-  something, say "not enough data" rather than guessing.
-
-(For deeper statistical diagnosis you may also draw on the
-`trackman-stats-analysis` skill's lenses — but the bundle above is usually enough.)
+- **Where strokes are lost — ranked by stroke impact, highest first.** Apply the
+  diagnostic lenses and thresholds from the **`trackman-stats-analysis`** skill —
+  it is the **single source of truth** for what counts as a gapping overlap/hole,
+  wide dispersion, a launch inefficiency, or a scoring leak. Don't restate your
+  own threshold numbers here; read them from that skill so the two never drift.
+  Prefer the `synthesize()` aligned view — it reconciles Trackman + GameBook by
+  skill area and flags gaps that appear **only on-course** (which point at
+  lies/pressure/course-management, not pure mechanics — see Step 3). Tie every gap
+  to the specific number behind it; if data is too thin to judge something, say
+  "not enough data" rather than guessing.
 
 ## Step 3 — Prescribe (how to lower his score)
 
 Turn the **top 2–3 gaps** into a concrete plan, pulling drills from the
-**`drill-library`** skill (live-search a vetted YouTube link if the library has
-no good match — never invent URLs):
+**`drill-library`** skill:
 
+- **Match the fix to where the gap lives.** If a gap shows up on the range *and*
+  on-course, fix the mechanics with a range drill. But if a gap appears **only
+  on-course** and not on the range (a signal `synthesize()` /
+  `trackman-stats-analysis` surface directly), the leak is **decision-making, not
+  the swing** — prescribe a course-management / mental fix from `drill-library`'s
+  `on-course-strategy` set (tee-club selection, aim to the fat side, lay-up
+  logic, avoiding short-siding, pre-shot routine, pressure), **not** a mechanical
+  range drill.
 - Build one session: warm-up → focused blocks on the gaps → a pressure finisher.
-- Each block: club, distances, targets, reps, a **measurable goal on Trackman**,
-  **2–3 verified YouTube drill links**, a `where` tag (`range` or `home`), and
-  the **strokes it saves**. Prescribe both flavors: range blocks for the next
-  session, at least one `home` block for today.
+- Each block: club, distances (metric), targets, reps, a **measurable goal on
+  Trackman**, a `where` tag (`range`, `home`, or `course`), the **strokes it
+  saves**, and drill videos — **2–3 verified YouTube links when a web-search tool
+  is available; otherwise the fully-specified drill with no link (never an
+  invented URL).** Prescribe both flavors: range blocks for the next session, at
+  least one `home` block for today.
 - Spend the most reps on the #1 stroke-leak.
 
 ## Step 4 — Remember it (save the plan)
@@ -137,6 +146,25 @@ Always include **`target_specs`** when the targets are measurable shot metrics �
 that's what lets the coach grade progress later. Tell the user it's saved and they
 can ask "what's today's training?" next time. If the new plan supersedes an old
 pending one, `training_plan(action="done")` the old one (or leave it queued).
+
+## Step 5 — The season goal & multi-week arc
+
+`training_plan` is a flat queue, so **you** hold the arc. Don't treat each plan as
+a one-off — sequence them toward one concrete goal:
+
+- **Set one measurable season goal** with the user (e.g. "handicap 14 → 10 by
+  fall", "break 90 by September"). Anchor it in the first plan's `title` /
+  `diagnosis` and repeat it back each session so it stays front-of-mind.
+- **Sequence, don't scatter.** Attack the biggest stroke-leak first and stay on
+  it — typically 2–3 focused weeks — until its `target_specs` grade `all_met`
+  (`training_plan(action="verify")` → `done`), *then* queue the next gap. Hopping
+  gaps every session buys nothing.
+- **Tie each plan back to the goal.** Quantify it ("wedge dispersion is worth
+  ~1.5 shots — a third of your 14→10"). When a plan completes, note the
+  handicap/scoring move and set the next gap in the sequence.
+- Use `training_plan(action="list")` to see the whole queue; re-order it (save the
+  more urgent gap so it comes next) when a round exposes a bigger leak than what's
+  currently on deck.
 
 ## Recall — "what's today's training?"
 

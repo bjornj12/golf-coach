@@ -34,8 +34,8 @@ built yet (Phase 0/1 incomplete), say so and stop — don't invent numbers.
 Work through these lenses and keep only what the data supports:
 
 1. **Club gapping.** From `trackman(action="clubs")`, list avg carry per club. Flag
-   overlapping clubs (gaps < ~8–10y between adjacent clubs) and big holes in
-   the set (gaps > ~20y). Gaps cost approach shots.
+   overlapping clubs (gaps < ~8–10 m between adjacent clubs) and big holes in
+   the set (gaps > ~18–20 m). Gaps cost approach shots.
 2. **Dispersion / consistency.** Per club, look at carry spread and
    side/left-right scatter. Wide side dispersion on scoring clubs (wedges,
    short irons) is high-value to fix. Note the tightest and loosest clubs.
@@ -53,10 +53,10 @@ Work through these lenses and keep only what the data supports:
 Produce a short, ranked list — **highest stroke-impact first** — e.g.:
 
 ```
-1. [Approach] 8-iron side dispersion ±18y, carry varies 12y → missing greens long/short.
-2. [Gapping] 4-iron and 5-hybrid both carry ~195y → a wasted slot; 205–215y gap is open.
-3. [Driver] launch 9.1° / spin 3400rpm → ballooning, ~15y carry left on the table.
-4. [Short game] 78 putts trend, 3-putts mostly from >30ft → speed control.
+1. [Approach] 8-iron side dispersion ±18 m, carry varies 12 m → missing greens long/short.
+2. [Gapping] 4-iron and 5-hybrid both carry ~178 m → a wasted slot; 188–196 m gap is open.
+3. [Driver] launch 9.1° / spin 3400 rpm → launching too low with too much spin → weak, dropping carry, ~14 m left on the table.
+4. [Short game] 3-putts mostly from >9 m → speed control.
 ```
 
 For each item give: the **club/area**, the **specific number** that's off, and
