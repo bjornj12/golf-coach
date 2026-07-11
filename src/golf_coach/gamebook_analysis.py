@@ -143,15 +143,26 @@ def compare_rounds(latest: dict[str, Any], priors: list[dict[str, Any]]) -> dict
         if lv is not None and pv is not None:
             out["scoring"][k] = _delta_block(k, float(lv), pv)
 
-    # Putts/hole — only if latest and ALL priors tracked putts with a numeric total.
+    # Putts/hole — only if latest and ALL priors tracked putts with a numeric
+    # total AND a numeric holes-tracked denominator. The stored record may carry
+    # that denominator under either `holes_tracked` or `tracked` (the normalizer
+    # accepts both), so read either — and require it, so `pph` never KeyErrors.
+    def _holes_tracked(d: dict[str, Any]) -> Any:
+        return d.get("holes_tracked", d.get("tracked"))
+
     def _has_putts(r):
         d = (r.get("dimensions") or {}).get("putts") or {}
-        return _tracked(r, "putts") and isinstance(d.get("total"), (int, float))
+        return (
+            _tracked(r, "putts")
+            and isinstance(d.get("total"), (int, float))
+            and isinstance(_holes_tracked(d), (int, float))
+            and _holes_tracked(d) > 0
+        )
 
     if _has_putts(latest) and all(_has_putts(p) for p in priors):
         def pph(r: dict[str, Any]) -> float:
             d = r["dimensions"]["putts"]
-            return round(d["total"] / max(d["holes_tracked"], 1), 2)
+            return round(d["total"] / max(_holes_tracked(d) or 1, 1), 2)
         pph_mean = _mean([pph(p) for p in priors])
         if pph_mean is not None:
             out["dimensions"]["putts_per_hole"] = _delta_block(

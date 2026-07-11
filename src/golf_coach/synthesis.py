@@ -20,7 +20,9 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from .client import TrackmanAuthError
 from .model import CrossSourceView, Finding
+from .ranking import rank_leaks
 
 _GENERIC_SETTING_LABELS = {
     "controlled": "the controlled-setting source(s)",
@@ -124,13 +126,23 @@ async def synthesize() -> CrossSourceView:
     registers the built-in sources — so `synthesize()` sees real data, not an
     empty registry. Polymorphic over whatever is registered: no source names
     are hardcoded here, so adding a new source is a one-module change (just
-    implement `Source.analyze()`). When a source's `analyze()` raises (e.g.
-    GameBook has no rounds saved yet, or Trackman's token expired) it records
-    an observable `context_notes` entry instead of crashing the whole
-    synthesis — one unavailable source never takes the view down. The note
-    names only the exception type, never any secret.
+    implement `Source.analyze()`).
+
+    A **genuinely-partial** failure (e.g. GameBook has no rounds saved yet)
+    records an observable `context_notes` entry instead of crashing the view —
+    one unavailable source never takes the whole synthesis down; the note names
+    only the exception type, never a secret. An **auth expiry**
+    (`TrackmanAuthError`, after the source's own silent-refresh retry has already
+    failed) is different: it must NOT be swallowed into an empty, successful-
+    looking view. It surfaces LOUDLY so the caller re-authenticates instead of
+    reading "no data" as "you have no data".
+
+    On success the view also carries two extra FACTUAL sections: `delivery` (the
+    driver club-delivery facts) and `leak_ranking` (skill areas ordered by
+    measured deviation-from-band severity). Both are measurement-only.
     """
     from .sources import registry
+    from .sources.trackman.delivery import DELIVERY_METRICS
 
     sources = registry.available_sources()
     failure_notes: list[str] = []
@@ -138,16 +150,28 @@ async def synthesize() -> CrossSourceView:
     async def _safe(source: Any) -> list[Finding]:
         try:
             return await source.analyze()
-        except Exception as exc:  # one source failing must not sink the view
+        except TrackmanAuthError:
+            raise  # loud — an expired token must not read as an empty success
+        except Exception as exc:  # a partial source failing must not sink the view
             failure_notes.append(f"{source.name} source unavailable: {type(exc).__name__}")
             return []
 
-    results = await asyncio.gather(
-        *(_safe(source) for source in sources), return_exceptions=False
-    )
+    try:
+        results = await asyncio.gather(
+            *(_safe(source) for source in sources), return_exceptions=False
+        )
+    except TrackmanAuthError as exc:
+        raise TrackmanAuthError(
+            "Trackman session expired — sign in again with auth(action='login'), "
+            "then retry synthesize(). (A valid Trackman token is required for the "
+            "cross-source view.)"
+        ) from exc
     findings: list[Finding] = [finding for result in results for finding in result]
 
     view = align(findings)
     if failure_notes:
         view.context_notes = [*view.context_notes, *failure_notes]
+    # Additional factual sections (measurement-only, no verdict):
+    view.delivery = [f for f in findings if f.metric in DELIVERY_METRICS]
+    view.leak_ranking = [leak.model_dump() for leak in rank_leaks(findings)]
     return view

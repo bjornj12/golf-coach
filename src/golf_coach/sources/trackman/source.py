@@ -13,11 +13,12 @@ No coaching opinions here — just shaping Trackman's raw GraphQL shapes into
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from ... import queries
 from ...analysis import GAME_KINDS, classify_session
-from ...client import TrackmanClient
+from ...client import TrackmanAuthError, TrackmanClient
 from ...config import Config
 from ...model import (
     TRACKMAN_CONTEXT,
@@ -37,6 +38,45 @@ from ...model import (
 )
 from .. import registry
 
+# Seconds to wait for a silent token refresh before giving up (mirrors the tools
+# layer's `server.SILENT_REFRESH_TIMEOUT`; duplicated to keep this data-source
+# layer independent of the tools layer — see the module docstring).
+_SILENT_REFRESH_TIMEOUT = 30.0
+
+
+def _has_saved_browser_session() -> bool:
+    """True if a persisted browser profile from a prior login exists.
+
+    Gates the silent-refresh attempt: with no saved session there is nothing to
+    refresh from, so we skip straight to failing loudly instead of waiting out a
+    doomed headless browser launch.
+    """
+    try:
+        from ... import token_store
+
+        profile = token_store.cache_dir() / "browser-profile"
+        return profile.is_dir() and any(profile.iterdir())
+    except Exception:
+        return False
+
+
+async def _try_silent_refresh() -> bool:
+    """Refresh the token headlessly from the persisted browser session.
+
+    Returns True only if a fresh token was captured. Mirrors the tools layer's
+    `server._try_silent_refresh`, but gated on a saved session so a token-less /
+    session-less caller fails fast instead of blocking on a browser launch.
+    """
+    if not _has_saved_browser_session():
+        return False
+    try:
+        from ...login import capture_token
+
+        await capture_token(headless=True, timeout_seconds=_SILENT_REFRESH_TIMEOUT)
+        return True
+    except Exception:
+        return False
+
 
 class TrackmanSource:
     """Normalizes Trackman's GraphQL data into the shared golf-coach model."""
@@ -48,15 +88,26 @@ class TrackmanSource:
         return {"rounds", "sessions", "profile", "handicap", "clubs", "auth"}
 
     # ----------------------------------------------------------------- #
-    # Fetch (minimal — no retry; the tools layer's `_run` owns that)
+    # Fetch — silent-refresh-on-401 then retry once, mirroring the tools
+    # layer's `server._run`. On a genuine expiry (refresh fails too) the
+    # `TrackmanAuthError` propagates LOUDLY rather than degrading to an
+    # empty, successful-looking view (see `synthesis.synthesize`).
     # ----------------------------------------------------------------- #
 
     async def _fetch(
-        self, query: str, variables: dict[str, Any] | None = None
+        self,
+        query: str,
+        variables: dict[str, Any] | None = None,
+        _allow_refresh: bool = True,
     ) -> dict[str, Any]:
         config = Config.from_env()
-        async with TrackmanClient(config) as client:
-            return await client.execute(query, variables)
+        try:
+            async with TrackmanClient(config) as client:
+                return await client.execute(query, variables)
+        except TrackmanAuthError:
+            if _allow_refresh and await _try_silent_refresh():
+                return await self._fetch(query, variables, _allow_refresh=False)
+            raise
 
     # ----------------------------------------------------------------- #
     # rounds()
@@ -233,8 +284,16 @@ class TrackmanSource:
 
         Populates the three fields `_dispersion_findings` keys on — `club`,
         `side` (`totalSide`, falling back to `carrySide`), `curve` — plus the
-        ball/club launch metrics the detail carries. `spin` reads range kinds'
-        `ballSpin` first, then sim kinds' `spinRate`; missing fields stay None.
+        ball/club launch metrics and the club-delivery metrics (`clubPath`,
+        `faceAngle`, `attackAngle`, `dynamicLoft`) the bay/sim detail carries.
+        `spin` reads range kinds' `ballSpin` first, then sim kinds' `spinRate`;
+        missing fields stay None.
+
+        `side_spin`/`back_spin` are DERIVED (pure trig, no judgment) from total
+        `spin` and the reported `spinAxis` (degrees) — the inverse of the
+        delivery module's `atan2(side, back)` — so the driver spin-axis fact can
+        be computed from the axis Trackman actually reports. When the monitor
+        gives no axis, both stay None and the axis fact is simply omitted.
         """
         m = stroke.get("measurement") or {}
         side = m.get("totalSide")
@@ -243,6 +302,14 @@ class TrackmanSource:
         spin = m.get("ballSpin")
         if spin is None:
             spin = m.get("spinRate")
+
+        spin_axis = m.get("spinAxis")
+        side_spin = back_spin = None
+        if isinstance(spin, (int, float)) and isinstance(spin_axis, (int, float)):
+            rad = math.radians(spin_axis)
+            back_spin = round(spin * math.cos(rad), 2)
+            side_spin = round(spin * math.sin(rad), 2)
+
         return Shot(
             club=stroke.get("club"),
             side=side,
@@ -257,6 +324,12 @@ class TrackmanSource:
             max_height=m.get("maxHeight"),
             hang_time=m.get("hangTime"),
             smash=m.get("smashFactor"),
+            attack_angle=m.get("attackAngle"),
+            club_path=m.get("clubPath"),
+            face_angle=m.get("faceAngle"),
+            dynamic_loft=m.get("dynamicLoft"),
+            side_spin=side_spin,
+            back_spin=back_spin,
         )
 
     async def _recent_practice_shots(self, limit: int = 2) -> list[Session]:
@@ -365,10 +438,16 @@ class TrackmanSource:
         plain `sessions()` list stays shot-free (cheap); enrichment is here only.
         """
         from . import analyzer as trackman_analyzer  # lazy: avoid import cycles
+        from . import delivery as trackman_delivery
 
         sessions = await self._recent_practice_shots()
         gapping = await self.club_gapping()
-        return trackman_analyzer.analyze(sessions, club_gapping=gapping)
+        findings = trackman_analyzer.analyze(sessions, club_gapping=gapping)
+        # Club-delivery facts (path / face-to-path / spin-axis / attack / spin) —
+        # pure measurements over the same enriched driver shots. `synthesize`
+        # also surfaces these in a dedicated `delivery` section.
+        findings.extend(trackman_delivery.driver_delivery(sessions))
+        return findings
 
 
 # Module-level singleton, registered at import time (see registry.register).
