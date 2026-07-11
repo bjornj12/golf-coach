@@ -11,6 +11,25 @@ hands you a specific practice plan with drills and YouTube links for your next
 session and grades your progress over time. It ships as an MCP server (the data
 tools) plus Claude **skills** (the coaching brain).
 
+## What you get
+
+You don't read the charts — you get a coach. Point it at your Trackman data and it:
+
+- **Finds where you're actually losing strokes** — not "work on your irons," but
+  *"your driver has a two-way miss spreading landings across a ~115 m corridor —
+  the speed is real, the face isn't yet."*
+- **Hands you one specific session** — clubs, distances, reps, a Trackman target,
+  and a drill with a real YouTube link. Stuck indoors? It has an at-home, no-ball
+  routine too.
+- **Grades your progress** — it saves the plan and checks your next session
+  against it, so you actually know whether it worked.
+- **Shows you the picture** — an animated view of your ball flight, the swing
+  path behind the miss, and how close you are to each target.
+
+![A Golf Coach session — driver-dispersion diagnosis with the swing-path cause, progress-vs-target bars, and drills to fix it](docs/media/sample-analysis.png)
+
+*A real session diagnosis: what's wrong, why, how close you are to your targets, and exactly what to practice next.*
+
 > **Name note.** "Golf Coach" is the product name. The technical ids stay
 > `golf-coach` (MCP server / plugin) and `golf-coach` (the published
 > package), so existing installs keep working.
