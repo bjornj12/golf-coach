@@ -17,11 +17,11 @@ def test_drill_library_has_at_home_no_ball_drills():
         assert drill in b, f"drill-library missing the {drill!r} no-ball drill"
 
 
-def test_drill_library_mandates_a_video_link():
+def test_drill_library_video_link_rule_degrades_gracefully():
     b = _body("drill-library")
-    assert "no exceptions" in b                 # every drill ships with a video
-    assert "video link" in b
-    assert "never invent" in b                  # but no hallucinated URLs
+    assert "degrade gracefully" in b            # links preferred, not mandatory when no web search
+    assert "youtube link" in b or "video link" in b
+    assert "never invent" in b or "never fabricate" in b   # but no hallucinated URLs
 
 
 def test_golf_coaching_is_visual_first_and_proactive():
@@ -36,9 +36,9 @@ def test_golf_coaching_mandates_visual_and_video_every_time():
     # Visuals are required, not optional.
     assert "every time" in b or "never give text-only" in b
     assert "animat" in b                        # animate the mechanics
-    # Every drill carries a video link.
+    # Every drill carries a verified video link when web search is available; never fabricated.
     assert "video link" in b
-    assert "never invent" in b
+    assert "never fabricate" in b or "invented" in b
 
 
 def test_practice_at_home_skill_exists():
