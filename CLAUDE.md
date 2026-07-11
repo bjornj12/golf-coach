@@ -284,9 +284,11 @@ all except the dev-only `trackman-api-discovery`.
   plan.
 - **`drill-library`** — Curated drills + vetted YouTube links (incl. an
   **at-home / no-ball** set), plus the live-search procedure for fresh videos.
-- **`golf-practice-at-home`** — Build a short **daily no-ball routine** for a
-  diagnosed fault (yard/living room, just a club), animated per drill, saved as
-  a training plan.
+- **`golf-practice-at-home`** — A **thin pointer** for at-home / no-ball
+  practice (yard/living room, just a club): routes to `golf-coaching`'s at-home
+  mode and `drill-library`'s no-ball set to build a short daily routine, animated
+  per drill, saved as a training plan. The routine-building logic lives in those
+  skills, not here — this skill only keeps the at-home path from drifting.
 - **`trackman-session-analyzer`** — Ingests recent sessions, stores a per-session
   analysis (last 30) via the MCP, and returns a normalized summary of the latest
   session. **Context-forked / data-collection skill: must run in a subagent,
@@ -315,7 +317,7 @@ dispatch `gamebook-screenshot-analysis` the same way; it feeds
 - Prefer async `httpx`; don't block the event loop.
 - When the API shape is uncertain, write a fixture-backed test from a real
   (scrubbed) response so regressions are caught when Trackman changes things.
-- Coaching is **specific**: "10 balls, 7-iron, alternate target 140/160y, log
+- Coaching is **specific**: "10 balls, 7-iron, alternate target 130/150 m, log
   carry dispersion" — never "practice your irons."
 
 ---
