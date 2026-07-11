@@ -83,7 +83,7 @@ re-run the in-app "log in to Trackman" when the ~7-day token lapses.
 /plugin install golf-coach@golf-coach
 ```
 
-Installs the MCP server (run via `uvx`) and all six coaching skills.
+Installs the MCP server (run via `uvx`) and all seven coaching skills.
 
 ### 🔌 Other MCP clients (or Claude Desktop without the extension)
 
@@ -138,7 +138,7 @@ sign-in flows above are easier.
 
 ### Verify it worked
 
-Ask Claude *"Am I signed in to Trackman?"* — it runs the `authenticate` tool and
+Ask Claude *"Am I signed in to Trackman?"* — it runs `auth(action="status")` and
 replies with your name (never the token).
 
 ## MCP tools
