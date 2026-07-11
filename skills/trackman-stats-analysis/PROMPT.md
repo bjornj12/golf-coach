@@ -24,7 +24,7 @@ available instead of reasoning over `trackman` output alone.
 ## Analyze (keep only what the data supports)
 
 1. **Club gapping.** From `trackman(action="clubs")`, list avg carry per club. Flag
-   overlaps (< ~8–10 m between adjacent clubs) and holes (> ~20 m). Gaps cost
+   overlaps (< ~8–10 m between adjacent clubs) and holes (> ~18–20 m). Gaps cost
    approach shots.
 2. **Dispersion / consistency.** Per club, carry spread and side scatter. Wide
    side dispersion on scoring clubs (wedges, short irons) is high-value to fix.
@@ -42,7 +42,7 @@ A short, ranked list — **highest stroke-impact first** — e.g.:
 ```
 1. [Approach] 8-iron side dispersion ±18 m, carry varies 12 m → missing greens.
 2. [Gapping] 4-iron and 5-hybrid both carry ~178 m → wasted slot; 188–196 m open.
-3. [Driver] launch 9.1° / spin 3400 rpm → ballooning, ~14 m carry left on table.
+3. [Driver] launch 9.1° / spin 3400 rpm → launching too low with too much spin → weak, dropping carry, ~14 m left on table.
 4. [Short game] 3-putts mostly from >9 m → speed control.
 ```
 

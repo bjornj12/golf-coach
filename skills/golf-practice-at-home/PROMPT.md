@@ -1,43 +1,32 @@
 # Practice at Home (no ball, no range)
 
-Build the user a short **daily no-ball routine** they can do in the yard or living
-room with just a club, targeting their actual swing fault — anchored in a visual
-of **what their ball is actually doing** (the trajectory page), with **multiple
-verified videos per drill** to follow. Use when they say "what can I do at home /
-without a ball / no range," or can't get to a range.
+**This is a thin pointer — the logic lives elsewhere.** An at-home / no-ball
+routine is already first-class in the coach, so don't re-implement it here:
 
-## Steps
+- **`golf-coaching`** rule 4 already mandates at least one at-home / no-ball
+  block in every plan (and its at-home flavor builds a full home routine).
+- **`drill-library`** holds the `at-home-no-ball` drill set — the **single source
+  of truth** for those drills, their feel cues, and their videos.
+- **`training_plan(action="save")`** persists the routine and later grades it.
 
-1. **Know the fault.** Reuse the existing diagnosis: pull the saved plan with
-   `training_plan(action="next")` (it carries the diagnosis + target_specs), or
-   if there's none, do a quick read via the `trackman-stats-analysis` prompt
-   (e.g. a slice = out-to-in path + open face → spin axis tilted). Don't guess —
-   tie the routine to a specific fault.
+When the user asks for a home / no-ball routine ("what can I do at home / without
+a ball / no range"):
 
-2. **Pick 3–5 no-ball drills that hit that fault.** Use the `at-home-no-ball`
-   set in the `drill-library` prompt and choose by mechanism:
-   - over-the-top / out-to-in path → **wall**, **pump-and-drop**, **step-through**
-   - open face → **split-hands release**, **mirror face check**
-   - both path + face → **trail-arm-only throws**
-   Don't pile on — 3–5 that cover the fault beats ten.
+1. Run the **`golf-coaching`** prompt in its at-home flavor — reuse the existing
+   diagnosis (`training_plan(action="next")`, or a quick `trackman-stats-analysis`
+   read), then build the plan.
+2. Pull drills from the **`drill-library`** prompt's `at-home-no-ball` set,
+   matched to the diagnosed fault (over-the-top / out-to-in → wall, pump-and-drop,
+   step-through; open face → split-hands release, mirror face check; both →
+   trail-arm-only throws).
+3. Present it home-first: a 5–10 min ordered daily block (transition → path →
+   face), reps + one *feel* per drill, videos where available (from
+   `drill-library` or a verified live search — never invented), rendered via the
+   **`trackman-visualizer`** prompt as `where: "home"` Fix-it blocks.
+4. Save it with `training_plan(action="save")` so "what's today's training?"
+   recalls and grades it next range session.
 
-3. **Make it a routine, not a list.** A 5–10 minute daily block: order the
-   drills (transition fix → path → face), reps each, the one *feel* per drill,
-   and what it fixes. Daily beats weekly; go slow and over-correct (neutral will
-   feel like a hook at first).
-
-4. **Show the fault, then the fixes.** Render the diagnosis once via the
-   `trackman-visualizer` prompt — the animated trajectory page built from their
-   real shots, with these drills as `where: "home"` blocks in its Fix-it
-   section. Give **every drill 2–3 verified YouTube links** (from the
-   `drill-library` prompt, or live-search + verify — never invent URLs) plus its
-   feel cue and reps. Lead with the visual, don't make them ask.
-
-5. **Save it so it sticks.** Persist the routine with `training_plan(action="save")`
-   (title like "At-home no-ball slice routine", the drills as blocks, the fault
-   in `diagnosis`, and `target_specs` copied from the swing plan if measurable),
-   so "what's today's training?" recalls it and you can grade it later once they
-   get back on a launch monitor.
-
-Close by telling them to do it daily and that you'll check it against their
-numbers next range session.
+Everything above is `golf-coaching` + `drill-library` behavior — this prompt only
+routes there so the at-home path isn't a second full copy that drifts. Close by
+telling the user to do it daily and that you'll check it against their numbers
+next range session.
