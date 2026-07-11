@@ -299,3 +299,71 @@ async def test_synthesize_skips_source_that_raises_without_crashing():
     assert view.by_skill_area == {}
     assert view.cross_source_deltas == []
     assert view.context_notes == ["gamebook source unavailable: RuntimeError"]
+
+
+# --------------------------------------------------------------------------- #
+# synthesize() — extra factual sections: delivery + leak_ranking
+# --------------------------------------------------------------------------- #
+
+
+class _DeliveryTrackmanSource(_FakeTrackmanSource):
+    """A Trackman-like source that emits driver dispersion + club-delivery facts,
+    exactly as the real `TrackmanSource.analyze()` now does."""
+
+    async def analyze(self) -> list[Finding]:
+        from golf_coach.sources.trackman import analyzer as trackman_analyzer
+        from golf_coach.sources.trackman.delivery import driver_delivery
+
+        sessions = [
+            Session(
+                source="trackman",
+                context=TRACKMAN_CONTEXT,
+                id="s1",
+                kind="SHOT_ANALYSIS",
+                shots=[
+                    Shot(club="Driver", side=30.0, carry=250.0, club_path=-5.0,
+                         face_angle=-1.0, attack_angle=0.5, dynamic_loft=19.0,
+                         spin=4200.0, side_spin=900.0, back_spin=4000.0),
+                    Shot(club="Driver", side=-28.0, carry=248.0, club_path=-4.0,
+                         face_angle=-0.5, attack_angle=1.0, dynamic_loft=19.5,
+                         spin=4300.0, side_spin=800.0, back_spin=4100.0),
+                ],
+            )
+        ]
+        return trackman_analyzer.analyze(sessions) + driver_delivery(sessions)
+
+
+async def test_synthesize_exposes_delivery_and_leak_ranking_sections():
+    registry.clear()
+    try:
+        registry.register(_DeliveryTrackmanSource())
+        view = await synthesize()
+    finally:
+        registry.clear()
+
+    # delivery: the driver club-delivery facts, pulled into their own section.
+    delivery_metrics = {f.metric for f in view.delivery}
+    assert {"club_path", "face_to_path", "spin_axis", "attack_angle", "spin_rate"} <= delivery_metrics
+    assert all(f.source == "trackman" for f in view.delivery)
+
+    # leak_ranking: ordered from rank 1, measurement-only (no coaching verbs).
+    assert view.leak_ranking, "expected a non-empty leak ranking"
+    assert view.leak_ranking[0]["rank"] == 1
+    assert all(0.0 <= leak["severity"] <= 1.0 for leak in view.leak_ranking)
+    blob = " ".join(
+        str(v) for leak in view.leak_ranking for v in leak.values()
+    ).lower()
+    for verb in ("should", "drill", "work on", "practice", "fix"):
+        assert verb not in blob
+
+
+async def test_synthesize_sections_empty_when_no_findings():
+    """No sources -> the extra sections default to empty, not None."""
+    registry.clear()
+    try:
+        view = await synthesize()
+    finally:
+        registry.clear()
+
+    assert view.delivery == []
+    assert view.leak_ranking == []

@@ -105,7 +105,8 @@ query GetSession($id: ID!) {
       strokes {
         time club
         measurement {
-          clubSpeed attackAngle ballSpeed smashFactor carry total
+          clubSpeed attackAngle clubPath faceAngle dynamicLoft
+          ballSpeed smashFactor carry total
           launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
           landingAngle maxHeight hangTime
         }
@@ -116,7 +117,8 @@ query GetSession($id: ID!) {
       strokes {
         time club
         measurement {
-          clubSpeed attackAngle ballSpeed smashFactor carry total
+          clubSpeed attackAngle clubPath faceAngle dynamicLoft
+          ballSpeed smashFactor carry total
           launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
           landingAngle maxHeight hangTime
         }
@@ -127,7 +129,8 @@ query GetSession($id: ID!) {
       strokes {
         time club
         measurement {
-          clubSpeed attackAngle ballSpeed smashFactor carry total
+          clubSpeed attackAngle clubPath faceAngle dynamicLoft
+          ballSpeed smashFactor carry total
           launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
           landingAngle maxHeight hangTime
         }
@@ -138,7 +141,8 @@ query GetSession($id: ID!) {
       strokes {
         time club
         measurement {
-          clubSpeed attackAngle ballSpeed smashFactor carry total
+          clubSpeed attackAngle clubPath faceAngle dynamicLoft
+          ballSpeed smashFactor carry total
           launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
           landingAngle maxHeight hangTime
         }
@@ -149,7 +153,8 @@ query GetSession($id: ID!) {
       strokes {
         time club
         measurement {
-          clubSpeed attackAngle ballSpeed smashFactor carry total
+          clubSpeed attackAngle clubPath faceAngle dynamicLoft
+          ballSpeed smashFactor carry total
           launchAngle launchDirection spinRate spinAxis curve carrySide totalSide
           landingAngle maxHeight hangTime
         }

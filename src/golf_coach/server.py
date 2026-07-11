@@ -267,7 +267,7 @@ async def auth(
 async def _tm_profile() -> dict[str, Any]:
     """Player profile + current handicap (identity, `hcp.currentHcp`, record)."""
     data = await _run(queries.PROFILE)
-    return data.get("me", {})
+    return data.get("me") or {}
 
 
 async def _tm_handicap(
@@ -278,7 +278,7 @@ async def _tm_handicap(
         queries.HANDICAP_HISTORY,
         {"skip": skip, "take": take, "onlyInAvg": only_in_avg},
     )
-    return data.get("me", {}).get("hcp", {})
+    return (data.get("me") or {}).get("hcp") or {}
 
 
 async def _tm_sessions(
@@ -301,7 +301,7 @@ async def _tm_sessions(
             "includeHidden": include_hidden,
         },
     )
-    return data.get("me", {}).get("activities", {})
+    return (data.get("me") or {}).get("activities") or {}
 
 
 async def _tm_session(activity_id: str) -> dict[str, Any]:
@@ -320,13 +320,13 @@ async def _tm_rounds(
     data = await _run(
         queries.COURSE_ROUNDS, {"skip": skip, "take": take, "completed": completed}
     )
-    return {"scorecards": data.get("me", {}).get("scorecards", [])}
+    return {"scorecards": (data.get("me") or {}).get("scorecards") or []}
 
 
 async def _tm_clubs(include_retired: bool = False) -> dict[str, Any]:
     """Per-club gapping and dispersion ("My Bag" / Find My Distance)."""
     data = await _run(queries.CLUB_STATS, {"includeRetired": include_retired})
-    return data.get("me", {}).get("equipment", {})
+    return (data.get("me") or {}).get("equipment") or {}
 
 
 async def _tm_summary(
@@ -340,7 +340,7 @@ async def _tm_summary(
         queries.ACTIVITY_SUMMARY,
         {"timeFrom": time_from, "timeTo": time_to, "skip": skip, "take": take},
     )
-    return data.get("me", {}).get("activitySummary", {})
+    return (data.get("me") or {}).get("activitySummary") or {}
 
 
 @mcp.tool(annotations=_RO_API)
@@ -424,8 +424,8 @@ async def _analysis_analyze(activity_id: str) -> dict[str, Any]:
 
     clubs_available: list[str] | None = None
     try:
-        equip = (await _run(queries.CLUB_STATS, {"includeRetired": False})) \
-            .get("me", {}).get("equipment", {})
+        equip = ((await _run(queries.CLUB_STATS, {"includeRetired": False}))
+                 .get("me") or {}).get("equipment") or {}
         clubs_available = [
             c.get("displayName") for c in (equip.get("clubs") or [])
             if c.get("displayName")
@@ -524,10 +524,10 @@ async def _training_verify(plan_id: str, activity_id: str | None) -> dict[str, A
         node, strokes = await _strokes_for(chosen_id)
     else:
         # Newest first: first session that has shots for a target club.
-        acts = (await _run(queries.LIST_SESSIONS, {
+        acts = (((await _run(queries.LIST_SESSIONS, {
             "skip": 0, "take": scan_window, "kinds": None,
             "timeFrom": None, "timeTo": None, "includeHidden": False,
-        })).get("me", {}).get("activities", {}).get("items", [])
+        })).get("me") or {}).get("activities") or {}).get("items") or []
         for it in acts:
             aid = it.get("id")
             if not aid:
@@ -682,7 +682,15 @@ async def setup() -> dict[str, Any]:
 
 @mcp.tool(annotations=_RO_LOCAL)
 async def synthesize() -> dict[str, Any]:
-    """Cross-source, context-aware view: runs each source's expert analyzer and aligns their findings by skill area (no verdicts — the coach interprets)."""
+    """Cross-source, context-aware view: runs each source's expert analyzer and aligns their findings by skill area (no verdicts — the coach interprets).
+
+    Also returns two extra FACTUAL sections (measurement-only): `delivery` — the
+    driver club-delivery facts (path / face-to-path / spin-axis / attack / spin);
+    and `leak_ranking` — skill areas ordered by measured deviation-from-band
+    severity. If the Trackman token has expired (and a silent refresh failed),
+    this raises loudly rather than returning an empty view — re-auth with
+    `auth(action='login')` and retry.
+    """
     from .synthesis import synthesize as _synth
 
     view = await _synth()
@@ -713,7 +721,7 @@ def _gamebook_save(record: dict[str, Any]) -> dict[str, Any]:
     while True:
         existing = gamebook_store.get_round(rid)
         same_round = existing is not None and \
-            existing.get("result", {}).get("gross") == record.get("result", {}).get("gross")
+            (existing.get("result") or {}).get("gross") == (record.get("result") or {}).get("gross")
         if existing is None or same_round:
             break
         n += 1

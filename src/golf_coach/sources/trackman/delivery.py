@@ -20,9 +20,15 @@ from ...model import TRACKMAN_CONTEXT, Finding, Session
 SPIN_WINDOW = (2000.0, 2800.0)  # rpm
 ATTACK_WINDOW = (2.0, 5.0)  # deg (up)
 
+# The metrics `driver_delivery` can emit — the cross-source view uses this to pull
+# a dedicated "delivery" section out of the flat findings list (see synthesis.py).
+DELIVERY_METRICS = frozenset(
+    {"club_path", "face_to_path", "spin_axis", "spin_rate", "attack_angle", "dynamic_loft"}
+)
+
 
 def _is_driver(club: str | None) -> bool:
-    return bool(club) and "driver" in club.lower()
+    return bool(club and "driver" in club.lower())
 
 
 def _finding(metric: str, value: float, unit: str, detail: str) -> Finding:
@@ -65,24 +71,31 @@ def driver_delivery(sessions: list[Session]) -> list[Finding]:
         findings.append(_finding("club_path", path, "deg", f"{abs(path)}° {side}"))
 
     # face-to-path per shot (face angle relative to the swing path) then averaged.
-    ftp = [
-        s.face_angle - s.club_path
-        for s in shots
-        if _num(s.face_angle) is not None and _num(s.club_path) is not None
-    ]
-    if ftp:
-        v = _avg(ftp)
-        rel = "open to path" if v > 0 else "closed to path" if v < 0 else "square to path"
-        findings.append(_finding("face_to_path", v, "deg", f"{abs(v)}° {rel}"))
+    # Narrow to local non-None floats before the subtraction so the arithmetic is
+    # type-safe (the raw attributes are `float | None`).
+    ftp: list[float] = []
+    for s in shots:
+        fa, cp = _num(s.face_angle), _num(s.club_path)
+        if fa is not None and cp is not None:
+            ftp.append(fa - cp)
+    ftp_avg = _avg(ftp)
+    if ftp_avg is not None:
+        rel = (
+            "open to path" if ftp_avg > 0
+            else "closed to path" if ftp_avg < 0
+            else "square to path"
+        )
+        findings.append(_finding("face_to_path", ftp_avg, "deg", f"{abs(ftp_avg)}° {rel}"))
 
     # spin axis per shot from side/back spin (the curve): +right, -left.
-    axis = [
-        math.degrees(math.atan2(s.side_spin, s.back_spin))
-        for s in shots
-        if _num(s.side_spin) is not None and _num(s.back_spin) not in (None, 0)
-    ]
-    if axis:
-        v = round(_avg(axis), 2)
+    axis: list[float] = []
+    for s in shots:
+        ss, bs = _num(s.side_spin), _num(s.back_spin)
+        if ss is not None and bs is not None and bs != 0:
+            axis.append(math.degrees(math.atan2(ss, bs)))
+    axis_avg = _avg(axis)
+    if axis_avg is not None:
+        v = round(axis_avg, 2)
         curve = "right — curves right" if v > 0 else "left — curves left" if v < 0 else "straight"
         findings.append(_finding("spin_axis", v, "deg", f"{abs(v)}° tilt {curve}"))
 

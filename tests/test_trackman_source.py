@@ -11,9 +11,12 @@ from typing import Any
 
 import pytest
 
+from golf_coach.client import TrackmanAuthError
 from golf_coach.model import TRACKMAN_CONTEXT, Round, Session
 from golf_coach.sources import registry
+from golf_coach.sources import trackman as trackman_pkg  # noqa: F401
 from golf_coach.sources.base import Source
+from golf_coach.sources.trackman import source as tm_source_mod
 from golf_coach.sources.trackman.source import TrackmanSource
 
 
@@ -561,3 +564,136 @@ async def test_recent_practice_shots_empty_when_only_games():
     source = TrackmanSource()
     source._fetch = fetch
     assert await source._recent_practice_shots() == []
+
+
+# --------------------------------------------------------------------------- #
+# _stroke_to_shot() — club-delivery fields + derived spin components
+# --------------------------------------------------------------------------- #
+
+
+DELIVERY_STROKES = [
+    {"club": "Driver", "measurement": {
+        "clubPath": -5.0, "faceAngle": -1.0, "attackAngle": 0.5, "dynamicLoft": 19.0,
+        "spinRate": 4200.0, "spinAxis": 10.0, "totalSide": 8.0, "carry": 250.0}},
+    {"club": "Driver", "measurement": {
+        "clubPath": -4.0, "faceAngle": -0.5, "attackAngle": 1.0, "dynamicLoft": 19.5,
+        "spinRate": 4300.0, "spinAxis": 8.0, "totalSide": -6.0, "carry": 248.0}},
+]
+
+
+def test_stroke_to_shot_populates_club_delivery_fields():
+    shot = TrackmanSource._stroke_to_shot(DELIVERY_STROKES[0])
+    assert shot.club_path == -5.0
+    assert shot.face_angle == -1.0
+    assert shot.attack_angle == 0.5
+    assert shot.dynamic_loft == 19.0
+    assert shot.spin == 4200.0
+
+
+def test_stroke_to_shot_derives_side_and_back_spin_from_axis():
+    import math
+
+    shot = TrackmanSource._stroke_to_shot(DELIVERY_STROKES[0])
+    # +axis (10°) tilts right -> positive side spin; back spin stays positive.
+    assert shot.side_spin is not None and shot.side_spin > 0
+    assert shot.back_spin is not None and shot.back_spin > 0
+    # The derivation is the exact inverse of the delivery module's atan2 — it
+    # round-trips back to the reported spin axis.
+    assert round(math.degrees(math.atan2(shot.side_spin, shot.back_spin)), 1) == 10.0
+
+
+def test_stroke_to_shot_no_spin_axis_leaves_components_none():
+    shot = TrackmanSource._stroke_to_shot({"club": "Driver", "measurement": {"spinRate": 4000.0}})
+    assert shot.side_spin is None
+    assert shot.back_spin is None
+
+
+def _delivery_fetch():
+    """Fake `_fetch` serving a Shot-Analysis session of driver deliveries."""
+
+    async def fetch(query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+        if "ListSessions" in query:
+            return {"me": {"activities": {"items": [
+                {"id": "p1", "time": "2026-07-03T09:00:00Z", "kind": "SHOT_ANALYSIS",
+                 "strokeCount": 2, "clubs": ["Driver"]},
+            ]}}}
+        if "GetSession" in query:
+            return {"node": {"__typename": "ShotAnalysisSessionActivity", "id": "p1",
+                             "time": "2026-07-03T09:00:00Z", "kind": "SHOT_ANALYSIS",
+                             "strokeCount": 2, "strokes": DELIVERY_STROKES}}
+        if "ClubStats" in query:
+            return {"me": {"equipment": {"clubs": []}}}
+        raise AssertionError(f"no fake response for query: {query[:60]!r}")
+
+    return fetch
+
+
+async def test_analyze_emits_driver_delivery_findings():
+    from golf_coach.sources.trackman.delivery import DELIVERY_METRICS
+
+    source = TrackmanSource()
+    source._fetch = _delivery_fetch()
+
+    findings = await source.analyze()
+
+    delivery = [f for f in findings if f.metric in DELIVERY_METRICS]
+    metrics = {f.metric for f in delivery}
+    assert {"club_path", "face_to_path", "spin_axis", "attack_angle", "spin_rate"} <= metrics
+    for f in delivery:
+        assert f.source == "trackman"
+        assert f.skill_area == "driving"
+        assert f.context == TRACKMAN_CONTEXT
+
+
+# --------------------------------------------------------------------------- #
+# _fetch() — silent-refresh-on-401 then retry, else surface the auth error loudly
+# --------------------------------------------------------------------------- #
+
+
+async def test_fetch_retries_once_after_silent_refresh(monkeypatch):
+    calls = {"n": 0}
+
+    async def fake_execute(self, query, variables=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise TrackmanAuthError("expired")
+        return {"ok": True}
+
+    monkeypatch.setattr("golf_coach.client.TrackmanClient.execute", fake_execute)
+
+    async def refreshed() -> bool:
+        return True
+    monkeypatch.setattr(tm_source_mod, "_try_silent_refresh", refreshed)
+
+    result = await TrackmanSource()._fetch("query { __typename }")
+    assert result == {"ok": True}
+    assert calls["n"] == 2  # failed once, refreshed, retried once
+
+
+async def test_fetch_raises_loudly_when_refresh_fails(monkeypatch):
+    async def always_auth_error(self, query, variables=None):
+        raise TrackmanAuthError("expired")
+    monkeypatch.setattr("golf_coach.client.TrackmanClient.execute", always_auth_error)
+
+    async def no_refresh() -> bool:
+        return False
+    monkeypatch.setattr(tm_source_mod, "_try_silent_refresh", no_refresh)
+
+    with pytest.raises(TrackmanAuthError):
+        await TrackmanSource()._fetch("query { __typename }")
+
+
+async def test_try_silent_refresh_false_without_saved_session(monkeypatch, tmp_path):
+    """No persisted browser profile -> skip the (doomed) headless launch entirely
+    and report failure fast, so a token-less caller never blocks on a browser."""
+    monkeypatch.setenv("GOLF_COACH_CACHE_DIR", str(tmp_path))
+
+    called = {"capture": False}
+
+    async def fake_capture(*a, **k):
+        called["capture"] = True
+        return "tok"
+    monkeypatch.setattr("golf_coach.login.capture_token", fake_capture)
+
+    assert await tm_source_mod._try_silent_refresh() is False
+    assert called["capture"] is False  # gated out before any browser launch

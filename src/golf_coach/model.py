@@ -158,9 +158,18 @@ class Finding(BaseModel):
 
 
 class CrossSourceView(BaseModel):
-    """The normalizer's output: findings grouped by skill area, plus deltas."""
+    """The normalizer's output: findings grouped by skill area, plus deltas.
+
+    `delivery` and `leak_ranking` are additional FACTUAL sections (measurements,
+    no verdicts): `delivery` is the driver club-delivery facts (path / face-to-
+    path / spin-axis / attack / spin) pulled out of the flat findings; `leak_
+    ranking` orders skill areas by measured deviation-from-band severity. Both
+    carry no coaching — interpretation stays in the skills (CLAUDE.md boundary).
+    """
 
     by_skill_area: dict[str, list[Finding]] = Field(default_factory=dict)
     cross_source_deltas: list[dict[str, Any]] = Field(default_factory=list)
     context_notes: list[str] = Field(default_factory=list)
     coverage_summary: dict[str, Any] = Field(default_factory=dict)
+    delivery: list[Finding] = Field(default_factory=list)
+    leak_ranking: list[dict[str, Any]] = Field(default_factory=list)

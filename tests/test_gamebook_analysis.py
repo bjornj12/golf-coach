@@ -148,6 +148,41 @@ def test_compare_putts_when_all_tracked():
     assert p["direction"] == "better"   # fewer putts is better
 
 
+def test_compare_putts_reads_tracked_alias_denominator():
+    """The stored putts dimension may carry the holes-tracked denominator under
+    `tracked` (not `holes_tracked`) — compare must read either and NOT KeyError."""
+    def _round_tracked(rid, to_par, total, tracked):
+        return {
+            "id": rid,
+            "scoring": {"to_par": to_par,
+                        "by_par_type": {"par3": 2.0, "par4": 1.5, "par5": 1.5}},
+            "coverage": {"scoring": "full", "putts": "full"},
+            "dimensions": {"putts": {"total": total, "tracked": tracked,
+                                     "coverage": "full"}},
+        }
+    latest = _round_tracked("r2", 30, 27, 18)
+    prior = _round_tracked("r1", 40, 36, 18)
+    out = ga.compare_rounds(latest, [prior])   # must not raise KeyError
+    p = out["dimensions"]["putts_per_hole"]
+    assert p["latest"] == 1.5       # 27/18
+    assert p["prior_mean"] == 2.0   # 36/18
+    assert p["direction"] == "better"
+
+
+def test_compare_skips_putts_when_denominator_missing():
+    """Numeric total but NO holes-tracked denominator at all -> skip, don't crash."""
+    latest = {"id": "r2", "scoring": {"to_par": 30,
+              "by_par_type": {"par3": 2.0, "par4": 1.5, "par5": 1.5}},
+              "coverage": {"scoring": "full", "putts": "full"},
+              "dimensions": {"putts": {"total": 30, "coverage": "full"}}}
+    prior = {"id": "r1", "scoring": {"to_par": 40,
+             "by_par_type": {"par3": 2.8, "par4": 1.9, "par5": 1.8}},
+             "coverage": {"scoring": "full", "putts": "full"},
+             "dimensions": {"putts": {"total": 33, "coverage": "full"}}}
+    out = ga.compare_rounds(latest, [prior])   # must not raise
+    assert out["dimensions"]["putts_per_hole"] == {"skipped": "coverage"}
+
+
 def test_compare_no_priors_is_safe():
     latest = _round("r1", 40, 2.8, 1.9, 1.8)
     out = ga.compare_rounds(latest, [])
