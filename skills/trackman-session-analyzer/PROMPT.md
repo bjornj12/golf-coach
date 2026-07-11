@@ -51,6 +51,9 @@ into the conversation.
 **Key stats** (metric units — m/s, meters):
 <game: to_par, GIR, putts, drive avg, course difficulty>
 <practice: stroke count, duration, clubs used, avg carry, notable per-club>
+<if metrics.has_club_data: per-club **club delivery** from per_club[club].delivery —
+  club path (+ club_path_std), face angle, face-to-path, attack angle, spin axis.
+  Bay/sim sessions carry this; range-radar sessions do not — omit when false.>
 
 **Normalized vs prior sessions** (n = <history size>):
 <each normalized metric: value, mean, delta, better/worse>

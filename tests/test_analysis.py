@@ -128,6 +128,51 @@ def test_practice_metrics_count_clubs_and_duration():
     assert m["per_club"]["DRIVER"]["n"] >= 1
 
 
+def _bay_session(club="DRIVER", kind="SHOT_ANALYSIS"):
+    """A bay/sim node whose strokes carry the full Measurement (club data)."""
+    paths = [-6.0, -4.0, -5.0, -5.0]
+    strokes = [
+        {
+            "club": club,
+            "measurement": {
+                "ballSpeed": 65.0, "carry": 240.0,
+                "clubPath": p, "faceAngle": -1.0, "attackAngle": 1.0,
+                "clubSpeed": 40.0, "dynamicLoft": 12.0, "spinRate": 2500.0,
+                "spinAxis": 10.0,
+            },
+        }
+        for p in paths
+    ]
+    return {"__typename": "ShotAnalysisSessionActivity", "kind": kind,
+            "time": "2026-06-26T10:00:00Z", "strokes": strokes}
+
+
+def test_practice_metrics_surface_club_delivery():
+    # A bay session's club-delivery metrics must reach the record (the fetched
+    # GET_SESSION strokes carry them; the analysis layer must not drop them).
+    m = analysis.session_metrics(_bay_session())
+    assert m["has_club_data"] is True
+    d = m["per_club"]["DRIVER"]["delivery"]
+    assert d["club_path_avg"] == -5.0            # mean of [-6, -4, -5, -5]
+    assert d["face_angle_avg"] == -1.0
+    assert d["face_to_path_avg"] == 4.0          # (faceAngle - clubPath) per shot
+    assert d["attack_angle_avg"] == 1.0
+    assert d["club_speed_avg"] == 40.0
+    assert d["dynamic_loft_avg"] == 12.0
+    assert d["spin_rate_avg"] == 2500.0
+    assert d["spin_axis_avg"] == 10.0
+    assert d["n_with_club_data"] == 4
+    assert d["club_path_std"] is not None
+
+
+def test_range_practice_has_no_club_delivery():
+    # Range strokes (RangeStrokeMeasurement) carry NO club fields — the record
+    # must not fabricate a delivery block or claim club data.
+    m = analysis.session_metrics(_practice(strokes=20, minutes=30, clubs=["DRIVER"]))
+    assert m["has_club_data"] is False
+    assert "delivery" not in m["per_club"]["DRIVER"]
+
+
 def test_game_metrics_and_difficulty():
     m = analysis.session_metrics(_game(to_par=8, gir=9, putts=30))
     assert m["to_par"] == 8

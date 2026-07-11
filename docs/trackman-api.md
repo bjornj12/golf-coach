@@ -248,12 +248,27 @@ to mph/yards if the user expects imperial.
 - No local OAuth: the MCP depends on a captured Bearer token (see auth strategy).
 - "Strokes Gained" is **not** a first-class field; it must be derived in the
   analysis skill from shot/score data, not fetched.
-- `trackman(action="session")` currently has inline fragments for
-  `RangePracticeActivity` and `CoursePlayActivity` only. Other shot-bearing
-  kinds — notably `MapMyBagSessionActivity`, `ShotAnalysisSessionActivity`,
-  `RangeFindMyDistanceActivity` — return just the interface fields until
-  fragments are added. (Validated: a `MapMyBagSessionActivity` came back without
-  strokes for this reason.)
+- **Two stroke/measurement types (verified via open introspection, 2026-07-11).**
+  Range-radar activities (`RangePracticeActivity`, `RangeFindMyDistanceActivity`,
+  the range games) use `RangeStroke.measurement: RangeStrokeMeasurement` — **39
+  ball-flight fields only, NO `clubPath`/`faceAngle`/`faceToPath`/`attackAngle`/
+  `clubSpeed`**. Bay/sim/analysis activities (`ShotAnalysisSessionActivity`,
+  `SimulatorSessionActivity`, `MapMyBagSessionActivity`, `SessionActivity`,
+  `VirtualRangeSessionActivity`, and also `TracySessionActivity`,
+  `PerformancePuttingSessionActivity`, `CombineTestActivity`) use
+  `Stroke.measurement: Measurement` — the full 75-field set **incl. club
+  delivery**. So club path/face **is** fetchable for bay/sim sessions (it comes
+  back in the *same* `GET_SESSION` request — no second call needed; the portal
+  UI's separate "Club data" tab is presentation only), but is genuinely absent
+  from the API for range radars (report-only there). `analysis.session_metrics`
+  now surfaces per-club club delivery for bay/sim sessions
+  (`per_club[club].delivery`, `has_club_data`).
+- **Remaining fragment gap (latent, not yet needed):** `GET_SESSION` /
+  `SESSION_MEASUREMENTS` still lack fragments for a few `Stroke`-bearing kinds —
+  `TracySessionActivity`, `PerformancePuttingSessionActivity`,
+  `CombineTestActivity` — and for `OnCourseActivity` (`OnCourseStroke`, a
+  different `measurements` shape). Those return interface-only (no strokes) until
+  fragments are added.
 
 ## Live validation (2026-06-27)
 

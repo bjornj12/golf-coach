@@ -35,6 +35,19 @@ SERIOUS_THRESHOLD = 0.5  # seriousness at/above this counts as an improvement at
 WARMUP_MAX_STROKES = 8   # fewer strokes than this …
 WARMUP_MAX_MINUTES = 5   # … or shorter than this → warm-up regardless of kind
 
+# Club-delivery measurement fields carried by bay/sim strokes (a full
+# `Measurement`); ABSENT on range-radar strokes (`RangeStrokeMeasurement`, which
+# is ball-flight only). Surfaced as raw per-club averages so the coaching skill
+# can see path/face/attack — measurement only, no interpretation here.
+_DELIVERY_FIELDS = {
+    "club_path": "clubPath",
+    "face_angle": "faceAngle",
+    "attack_angle": "attackAngle",
+    "club_speed": "clubSpeed",
+    "dynamic_loft": "dynamicLoft",
+    "spin_rate": "spinRate",
+}
+
 
 # --- small numeric helpers ------------------------------------------------
 
@@ -244,6 +257,7 @@ def session_metrics(detail: dict) -> dict:
     strokes = _extract_strokes(detail)
     per_club: dict[str, dict] = {}
     carries: list[float] = []
+    session_has_club_data = False
     for s in strokes:
         club = s.get("club")
         m = s.get("measurement") or {}
@@ -253,27 +267,65 @@ def session_metrics(detail: dict) -> dict:
             carries.append(carry)
         if not club:
             continue
-        slot = per_club.setdefault(club, {"carries": [], "speeds": [], "n": 0})
+        slot = per_club.setdefault(
+            club, {"carries": [], "speeds": [], "n": 0, "delivery": {}, "spin_axis": []}
+        )
         slot["n"] += 1
         if isinstance(carry, (int, float)):
             slot["carries"].append(carry)
         if isinstance(speed, (int, float)):
             slot["speeds"].append(speed)
-    per_club_out = {
-        club: {
+        # Club-delivery metrics: present on bay/sim strokes, absent on range
+        # radars. Collected raw, per club — no interpretation (that's the skill's
+        # job). A stroke counts as club-measured only if a genuine club field is
+        # present, so a range session (which still reports spin axis) is never
+        # falsely flagged as carrying club data.
+        has_club = False
+        for key, field in _DELIVERY_FIELDS.items():
+            val = m.get(field)
+            if isinstance(val, (int, float)):
+                slot["delivery"].setdefault(key, []).append(float(val))
+                has_club = True
+        if has_club:
+            session_has_club_data = True
+            axis = m.get("spinAxis")
+            if isinstance(axis, (int, float)):
+                slot["spin_axis"].append(float(axis))
+            face, path = m.get("faceAngle"), m.get("clubPath")
+            if isinstance(face, (int, float)) and isinstance(path, (int, float)):
+                slot["delivery"].setdefault("face_to_path", []).append(
+                    float(face) - float(path)
+                )
+
+    def _club_out(d: dict) -> dict:
+        out: dict[str, Any] = {
             "n": d["n"],
             "carry_avg": _avg(d["carries"]),
             "carry_std": _std(d["carries"]),
             "ball_speed_avg": _avg(d["speeds"]),
         }
-        for club, d in per_club.items()
-    }
+        delivery = d.get("delivery") or {}
+        if delivery:
+            block: dict[str, Any] = {
+                "n_with_club_data": max((len(v) for v in delivery.values()), default=0),
+            }
+            for key, vals in delivery.items():
+                block[f"{key}_avg"] = _avg(vals)
+            if d.get("spin_axis"):
+                block["spin_axis_avg"] = _avg(d["spin_axis"])
+            if "club_path" in delivery:
+                block["club_path_std"] = _std(delivery["club_path"])
+            out["delivery"] = block
+        return out
+
+    per_club_out = {club: _club_out(d) for club, d in per_club.items()}
     return {
         "type": "practice",
         "stroke_count": len(strokes),
         "duration_minutes": _duration_minutes(strokes),
         "clubs_used": sorted(per_club.keys()),
         "avg_carry": _avg(carries),
+        "has_club_data": session_has_club_data,
         "per_club": per_club_out,
     }
 
