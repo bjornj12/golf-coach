@@ -83,7 +83,7 @@ re-run the in-app "log in to Trackman" when the ~7-day token lapses.
 /plugin install golf-coach@golf-coach
 ```
 
-Installs the MCP server (run via `uvx`) and all seven coaching skills.
+Installs the MCP server (run via `uvx`) and all eight coaching skills.
 
 ### 🔌 Other MCP clients (or Claude Desktop without the extension)
 
@@ -189,6 +189,7 @@ The skills under [`skills/`](./skills) are delivered two ways:
 | `golf-coaching` | Turn the diagnosis into an actionable practice plan (visual-first; auto-grades progress) |
 | `drill-library` | Curated drills + vetted links — incl. **at-home / no-ball** drills — plus live search |
 | `golf-practice-at-home` | Build a daily **no-ball** routine for a diagnosed fault, animated per drill |
+| `at-home-practice-feedback` | A single mobile-first **drill card** with built-in feedback: prop, validation checkpoint, budget tier, video |
 | `trackman-session-analyzer` | Ingest + normalize recent sessions |
 | `gamebook-screenshot-analysis` | Ingest GameBook round screenshots into a coverage-aware round record; scoring-led progress that feeds the coach |
 | `trackman-visualizer` | Animate a diagnosis (or a single drill's mechanics) as an HTML artifact |
