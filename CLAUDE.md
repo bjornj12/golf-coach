@@ -289,6 +289,12 @@ all except the dev-only `trackman-api-discovery`.
   mode and `drill-library`'s no-ball set to build a short daily routine, animated
   per drill, saved as a training plan. The routine-building logic lives in those
   skills, not here — this skill only keeps the at-home path from drifting.
+- **`at-home-practice-feedback`** — A single **mobile-first drill card** for a
+  diagnosed fault: fault → root cause → drill → feedback method (prop + cue) →
+  equipment budget tier → validation checkpoint → video. Optimized for reading
+  on a phone between reps (deliberately no animations — an explicit exception
+  to the visual-first default). Drills/videos come from `drill-library`; for a
+  full daily routine use `golf-practice-at-home` instead.
 - **`trackman-session-analyzer`** — Ingests recent sessions, stores a per-session
   analysis (last 30) via the MCP, and returns a normalized summary of the latest
   session. **Context-forked / data-collection skill: must run in a subagent,

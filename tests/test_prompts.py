@@ -13,6 +13,7 @@ USER_FACING = {
     "trackman-visualizer",
     "trackman-session-analyzer",
     "golf-practice-at-home",
+    "at-home-practice-feedback",
 }
 
 

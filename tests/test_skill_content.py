@@ -46,3 +46,15 @@ def test_practice_at_home_skill_exists():
     assert b
     assert "no ball" in b or "no-ball" in b
     assert "training_plan" in b                # saves the routine
+
+
+def test_at_home_practice_feedback_card_shape():
+    b = _body("at-home-practice-feedback")
+    # The mobile-first drill card carries every section of the output structure.
+    for section in ("fault", "root cause", "drill", "feedback method",
+                    "equipment needed", "validation checkpoint", "youtube"):
+        assert section in b, f"at-home-practice-feedback missing {section!r} section"
+    assert "mobile" in b
+    assert "drill-library" in b                # drills/videos come from the library
+    assert "never invent" in b or "never fabricate" in b  # no hallucinated URLs
+    assert "training_plan" in b                # offers to save for later grading
