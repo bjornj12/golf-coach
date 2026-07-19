@@ -83,7 +83,7 @@ re-run the in-app "log in to Trackman" when the ~7-day token lapses.
 /plugin install golf-coach@golf-coach
 ```
 
-Installs the MCP server (run via `uvx`) and all eight coaching skills.
+Installs the MCP server (run via `uvx`) and all ten coaching skills.
 
 ### 🔌 Other MCP clients (or Claude Desktop without the extension)
 
@@ -192,7 +192,14 @@ The skills under [`skills/`](./skills) are delivered two ways:
 | `at-home-practice-feedback` | A single mobile-first **drill card** with built-in feedback: prop, validation checkpoint, budget tier, video |
 | `trackman-session-analyzer` | Ingest + normalize recent sessions |
 | `gamebook-screenshot-analysis` | Ingest GameBook round screenshots into a coverage-aware round record; scoring-led progress that feeds the coach |
+| `swing-video-check` | Frame-by-frame visual check of a filmed swing (one angle per clip) against the current practice card |
+| `grip-check` | Grade the grip (too weak / too strong) from two face-forward photos — the coach's gate before any new prescription |
 | `trackman-visualizer` | Animate a diagnosis (or a single drill's mechanics) as an HTML artifact |
+
+To check a filmed swing: drop a clip named `DATE_CLUB_ACTION.mp4` (e.g.
+`2026-07-17_driver_grip-reset.mp4`) into the project in Claude Code and say
+"check my swing" — you get an angle-scoped checklist and one swing thought
+(needs `ffmpeg`).
 
 (`trackman-api-discovery` is a project/dev skill and isn't served as a prompt.)
 
