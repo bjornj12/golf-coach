@@ -44,5 +44,11 @@ tests/fixtures/gamebook/**/*.PNG
 tests/fixtures/gamebook/**/*.jpg
 tests/fixtures/gamebook/**/*.jpeg
 
+# Swing clips dropped in for swing-video-check are personal — never commit video.
+*.mp4
+*.MP4
+*.mov
+*.MOV
+
 # the .mcpb launcher resolves deps at install time; no lock
 mcpb/uv.lock

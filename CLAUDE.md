@@ -297,6 +297,16 @@ all except the dev-only `trackman-api-discovery`.
   into a coverage-aware round record via `gamebook` (rolling last 5), for
   scoring-led progress that feeds the coach. **Context-forked / data-collection
   skill: must run in a subagent, never on the main thread.**
+- **`swing-video-check`** — Frame-by-frame visual read of a single-angle phone
+  swing clip (`DATE_CLUB_ACTION.mp4`): ffmpeg key frames → a short drill-scoped
+  checklist + one swing thought, graded against the live `practice-card.md` /
+  `driver-rebuild-tracker.md` (faults are never hardcoded). Qualitative only —
+  complements Trackman, measures nothing.
+- **`grip-check`** — Grades the golfer's CURRENT grip from two face-forward
+  views (club UP + club DOWN): fingers-vs-palm, knuckle count, V directions →
+  too weak / neutral / too strong vs the practice card's target. The coach's
+  gate: `golf-coaching` never prescribes a new plan without a current grip
+  check.
 
 Typical flow: `auth(action="status")` → `trackman-stats-analysis` (diagnose,
 pulling `trackman`/`gamebook` data through `synthesize` for the cross-source
