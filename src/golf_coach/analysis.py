@@ -115,7 +115,7 @@ def _duration_minutes(strokes: list[dict]) -> int | None:
     parseable time, or when every time is identical (zero span). A zeroed
     duration must never demote a high-volume session to a warm-up.
     """
-    times = [t for t in (_parse_time(s.get("time")) for s in strokes) if t]
+    times = [t for t in (_parse_time(s.get("time") or s.get("strokeTime")) for s in strokes) if t]
     if len(times) < 2:
         return None
     span = (max(times) - min(times)).total_seconds()

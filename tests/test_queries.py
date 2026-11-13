@@ -30,3 +30,11 @@ def test_get_session_selects_trajectory_fields_everywhere():
     q = queries.GET_SESSION
     for field in ("maxHeight", "hangTime", "launchDirection", "landingAngle"):
         assert q.count(field) >= 8, f"{field} missing from some GET_SESSION kinds"
+
+
+def test_get_session_range_stroke_time_is_aliased():
+    # Range strokes' `time` is nullable (DateTime) while the other stroke kinds
+    # return DateTime!; two same-named fields of different types in one selection
+    # set make the API reject the whole query. Range strokes must be aliased.
+    q = queries.GET_SESSION
+    assert q.count("strokeTime: time") == 2

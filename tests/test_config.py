@@ -78,3 +78,22 @@ def test_no_token_skips_endpoint_guard(monkeypatch):
     # Without a token there's nothing to exfiltrate; don't block config loading.
     monkeypatch.setenv("TRACKMAN_GRAPHQL_ENDPOINT", "http://attacker.example/graphql")
     assert Config.from_env().token is None
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.parametrize("raw", ["${TRACKMAN_TOKEN}", "  ${TRACKMAN_TOKEN} ", "   "])
+def test_unexpanded_placeholder_env_falls_back_to_cache(monkeypatch, raw):
+    # .mcp.json passes TRACKMAN_TOKEN=${TRACKMAN_TOKEN}; when the host has no such
+    # variable the server receives the literal placeholder. It must not shadow
+    # the token the browser login cached.
+    cached = _jwt(int(time.time()) + 600)
+    token_store.save_token(cached)
+    monkeypatch.setenv("TRACKMAN_TOKEN", raw)
+    assert Config.from_env().token == cached
+
+
+def test_unexpanded_placeholder_without_cache_is_not_a_token(monkeypatch):
+    monkeypatch.setenv("TRACKMAN_TOKEN", "${TRACKMAN_TOKEN}")
+    assert not Config.from_env().has_token
