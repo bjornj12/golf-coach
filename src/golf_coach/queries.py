@@ -71,6 +71,9 @@ query ListSessions(
 
 # --- One activity in full --------------------------------------------------
 # Uses node(id:) so any activity kind resolves; inline fragments pull detail.
+# NOTE: range strokes' `time` is aliased `strokeTime` — their `time` is nullable
+# (DateTime) while the other stroke kinds return DateTime!, and GraphQL rejects
+# two same-named fields with different types in one selection set.
 GET_SESSION = """
 query GetSession($id: ID!) {
   node(id: $id) {
@@ -80,7 +83,7 @@ query GetSession($id: ID!) {
       id time kind numberOfStrokes clubs
       location { name }
       strokes {
-        time club bayName teePosition targetPosition
+        strokeTime: time club bayName teePosition targetPosition
         measurement {
           ballSpeed carry total carrySide totalSide
           launchAngle launchDirection landingAngle maxHeight
@@ -92,7 +95,7 @@ query GetSession($id: ID!) {
       id time kind numberOfStrokes clubs
       location { name }
       strokes {
-        time club
+        strokeTime: time club
         measurement {
           ballSpeed carry total carrySide totalSide
           launchAngle launchDirection landingAngle ballSpin spinAxis curve

@@ -47,6 +47,10 @@ def _resolve_token(env_raw: str | None) -> str | None:
     if not env_raw:
         return _cached_token()
     env = env_raw.strip()
+    if not env or (env.startswith("${") and env.endswith("}")):
+        # Unexpanded placeholder from .mcp.json (TRACKMAN_TOKEN was not set when
+        # the host launched the server) — not a token. Use the cache.
+        return _cached_token()
     if env.lower().startswith("bearer "):
         env = env[7:].strip()
 
